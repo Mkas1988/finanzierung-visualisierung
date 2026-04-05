@@ -57,6 +57,29 @@
         .overlay-box { background:#fff; border-radius:14px; padding:28px; max-width:560px; width:90%; max-height:85vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.25); position:relative; }
         .overlay-close { position:absolute; top:12px; right:16px; background:none; border:none; font-size:22px; cursor:pointer; color:var(--muted); line-height:1; }
         .overlay-close:hover { color:#000; }
+        /* Dashboard Nav */
+        .dash-nav { display:flex; gap:0; background:#fff; border-bottom:2px solid var(--border); position:sticky; top:0; z-index:100; }
+        .dash-nav-btn { flex:1; padding:14px 20px; cursor:pointer; border:none; background:none; font-size:14px; font-weight:600; color:var(--muted); border-bottom:3px solid transparent; transition:all .2s; }
+        .dash-nav-btn.active { color:var(--red); border-bottom-color:var(--red); background:#fff8f8; }
+        .dash-nav-btn:hover { color:#333; background:#fafafa; }
+        .dash-section { display:none; } .dash-section.active { display:block; }
+        .dash-hero { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+        .dash-gauge { position:relative; width:140px; height:140px; margin:0 auto; }
+        .dash-ring { fill:none; stroke-width:12; stroke-linecap:round; }
+        .dash-metric { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; background:var(--card); border-radius:14px; border:1px solid var(--border); }
+        .dash-metric .dm-val { font-size:36px; font-weight:800; line-height:1.1; }
+        .dash-metric .dm-label { font-size:12px; color:var(--muted); margin-top:4px; }
+        .dash-metric .dm-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+        .dash-timeline { display:flex; gap:0; margin:20px 0; }
+        .dash-tl-item { flex:1; text-align:center; padding:12px 8px; position:relative; }
+        .dash-tl-item::after { content:''; position:absolute; top:50%; right:0; width:1px; height:60%; transform:translateY(-50%); background:var(--border); }
+        .dash-tl-item:last-child::after { display:none; }
+        .dash-tl-item .tl-year { font-size:13px; font-weight:700; color:var(--red); }
+        .dash-tl-item .tl-label { font-size:10px; color:var(--muted); }
+        .dash-tl-item .tl-val { font-size:14px; font-weight:700; }
+        .dash-progress { height:8px; background:#eee; border-radius:4px; overflow:hidden; margin:4px 0; }
+        .dash-progress-bar { height:100%; border-radius:4px; transition:width .8s ease; }
+        @media(max-width:900px) { .dash-hero{grid-template-columns:1fr;} }
         .overlay-title { font-size:18px; font-weight:700; margin-bottom:4px; }
         .overlay-sub { font-size:13px; color:var(--muted); margin-bottom:16px; }
         .breakdown-row { display:flex; align-items:center; padding:10px 0; border-bottom:1px solid #f0f0f0; }
@@ -107,10 +130,270 @@ async function checkAuth(){
         <div id="overlayContent"></div>
     </div>
 </div>
-<div class="header">
-    <h1>Finanzierung Herbrüggenbusch 39, Essen - 35-Jahres-Übersicht</h1>
-    <p>DHH 118 m² | Kaufpreis 425.000 € + 150.000 € Modernisierung | Kapitalbedarf 627.000 € | Eigenmittel 120.000 €</p>
+<div class="header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+    <div>
+        <h1>Herbrüggenbusch 39, Essen</h1>
+        <p>DHH 118 m² | Kaufpreis 425.000 € + 150.000 € Modernisierung | Kapitalbedarf 627.000 €</p>
+    </div>
+    <div style="text-align:right;font-size:12px;opacity:.85;">
+        <div style="font-size:16px;font-weight:700;">Eigentum seit 2025</div>
+        <div>Stand: April 2026</div>
+    </div>
 </div>
+
+<!-- Navigation -->
+<div class="dash-nav">
+    <button class="dash-nav-btn active" onclick="switchDash('overview')">Dashboard</button>
+    <button class="dash-nav-btn" onclick="switchDash('kredit')">Finanzierung & Kredite</button>
+    <button class="dash-nav-btn" onclick="switchDash('nebenkosten')">Nebenkosten & Betrieb</button>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 1: OVERVIEW DASHBOARD -->
+<!-- ============================================================ -->
+<div class="dash-section active" id="sec-overview">
+<div class="container">
+
+<!-- Hero Metrics -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px;">
+    <div class="dash-metric" style="border-top:4px solid var(--red);">
+        <div class="dm-label">Gesamtbelastung / Monat</div>
+        <div class="dm-val" id="db_total" style="color:var(--red);">-</div>
+        <div class="dm-sub">Kredit + Nebenkosten</div>
+    </div>
+    <div class="dash-metric" style="border-top:4px solid var(--orange);">
+        <div class="dm-label">Davon Kreditraten</div>
+        <div class="dm-val" id="db_kredit" style="color:var(--orange);font-size:28px;">-</div>
+        <div class="dm-sub">4 Darlehen + Bauspar + Steuer</div>
+    </div>
+    <div class="dash-metric" style="border-top:4px solid var(--blue);">
+        <div class="dm-label">Davon Nebenkosten</div>
+        <div class="dm-val" style="color:var(--blue);font-size:28px;">544 €</div>
+        <div class="dm-sub">Gas, Strom, Wasser, Vers., Wartung</div>
+    </div>
+    <div class="dash-metric" style="border-top:4px solid var(--green);">
+        <div class="dm-label">Immobilienwert</div>
+        <div class="dm-val" style="color:var(--green);font-size:28px;">575.000 €</div>
+        <div class="dm-sub">Kaufpreis + Modernisierung</div>
+    </div>
+</div>
+
+<div class="dash-hero">
+    <!-- Left: Kredit-Fortschritt -->
+    <div class="card" style="border-left:4px solid var(--red);">
+        <h2 style="font-size:16px;">Kreditabbau-Fortschritt</h2>
+        <div style="display:flex;align-items:center;gap:24px;margin:16px 0;">
+            <div class="dash-gauge">
+                <svg viewBox="0 0 140 140" style="transform:rotate(-90deg);">
+                    <circle cx="70" cy="70" r="58" class="dash-ring" stroke="#eee"/>
+                    <circle cx="70" cy="70" r="58" class="dash-ring" stroke="var(--red)" stroke-dasharray="364.4" id="db_gauge_circle" stroke-dashoffset="364.4"/>
+                </svg>
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+                    <div style="font-size:24px;font-weight:800;" id="db_gauge_pct">-</div>
+                    <div style="font-size:10px;color:var(--muted);">getilgt</div>
+                </div>
+            </div>
+            <div>
+                <div style="font-size:13px;color:var(--muted);">Gesamtschuld Start</div>
+                <div style="font-size:20px;font-weight:700;">557.000 €</div>
+                <div style="font-size:13px;color:var(--muted);margin-top:8px;">Aktuelle Restschuld (ca.)</div>
+                <div style="font-size:20px;font-weight:700;color:var(--orange);" id="db_restschuld">-</div>
+                <div style="font-size:13px;color:var(--muted);margin-top:8px;">Schuldenfrei ca.</div>
+                <div style="font-size:20px;font-weight:700;color:var(--green);" id="db_schuldenfrei">-</div>
+            </div>
+        </div>
+
+        <!-- Einzelne Darlehen Fortschritt -->
+        <div style="margin-top:12px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px;">
+                <span style="color:var(--red);font-weight:600;">S-Förderdarlehen</span><span>100.000 €</span>
+            </div>
+            <div class="dash-progress"><div class="dash-progress-bar" style="background:var(--red);" id="db_prog_f"></div></div>
+
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:8px;margin-bottom:2px;">
+                <span style="color:var(--blue);font-weight:600;">Sparkasse</span><span>137.000 €</span>
+            </div>
+            <div class="dash-progress"><div class="dash-progress-bar" style="background:var(--blue);" id="db_prog_s"></div></div>
+
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:8px;margin-bottom:2px;">
+                <span style="color:var(--orange);font-weight:600;">NRW.BANK</span><span>270.000 €</span>
+            </div>
+            <div class="dash-progress"><div class="dash-progress-bar" style="background:var(--orange);" id="db_prog_n"></div></div>
+
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:8px;margin-bottom:2px;">
+                <span style="color:var(--teal);font-weight:600;">AG-Darlehen</span><span>50.000 €</span>
+            </div>
+            <div class="dash-progress"><div class="dash-progress-bar" style="background:var(--teal);" id="db_prog_ag"></div></div>
+        </div>
+    </div>
+
+    <!-- Right: Monatliche Kosten Aufschlüsselung -->
+    <div class="card" style="border-left:4px solid var(--blue);">
+        <h2 style="font-size:16px;">Monatliche Kosten — Wo geht das Geld hin?</h2>
+
+        <!-- Kredit Aufschlüsselung -->
+        <div style="font-size:12px;font-weight:600;color:var(--muted);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.5px;">Kreditraten</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="background:#fce4ec;border-radius:8px;padding:10px;">
+                <div style="font-size:11px;color:var(--red);">S-Förderdarlehen</div>
+                <div style="font-size:18px;font-weight:700;">458 €</div>
+            </div>
+            <div style="background:#e3f2fd;border-radius:8px;padding:10px;">
+                <div style="font-size:11px;color:var(--blue);">Sparkasse</div>
+                <div style="font-size:18px;font-weight:700;">622 €</div>
+            </div>
+            <div style="background:#fff3e0;border-radius:8px;padding:10px;">
+                <div style="font-size:11px;color:var(--orange);">NRW.BANK</div>
+                <div style="font-size:18px;font-weight:700;">1.204 €</div>
+            </div>
+            <div style="background:#e0f2f1;border-radius:8px;padding:10px;">
+                <div style="font-size:11px;color:var(--teal);">AG-Darlehen + Bauspar</div>
+                <div style="font-size:18px;font-weight:700;">843 €</div>
+                <div style="font-size:10px;color:var(--muted);">417 € Tilgung + 426 € Bauspar</div>
+            </div>
+        </div>
+
+        <!-- Nebenkosten Aufschlüsselung -->
+        <div style="font-size:12px;font-weight:600;color:var(--muted);margin:16px 0 6px;text-transform:uppercase;letter-spacing:.5px;">Betriebskosten</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+            <div style="background:#fff8e1;border-radius:8px;padding:10px;text-align:center;">
+                <div style="font-size:18px;">🔥</div>
+                <div style="font-size:16px;font-weight:700;">225 €</div>
+                <div style="font-size:10px;color:var(--muted);">Gas</div>
+            </div>
+            <div style="background:#e8f5e9;border-radius:8px;padding:10px;text-align:center;">
+                <div style="font-size:18px;">⚡</div>
+                <div style="font-size:16px;font-weight:700;">83 €</div>
+                <div style="font-size:10px;color:var(--muted);">Strom</div>
+            </div>
+            <div style="background:#e3f2fd;border-radius:8px;padding:10px;text-align:center;">
+                <div style="font-size:18px;">💧</div>
+                <div style="font-size:16px;font-weight:700;">41 €</div>
+                <div style="font-size:10px;color:var(--muted);">Wasser</div>
+            </div>
+            <div style="background:#fce4ec;border-radius:8px;padding:10px;text-align:center;">
+                <div style="font-size:18px;">🛡️</div>
+                <div style="font-size:16px;font-weight:700;">56 €</div>
+                <div style="font-size:10px;color:var(--muted);">Versicherung</div>
+            </div>
+            <div style="background:#f3e5f5;border-radius:8px;padding:10px;text-align:center;">
+                <div style="font-size:18px;">🔧</div>
+                <div style="font-size:16px;font-weight:700;">38 €</div>
+                <div style="font-size:10px;color:var(--muted);">Wartung</div>
+            </div>
+            <div style="background:#f5f5f5;border-radius:8px;padding:10px;text-align:center;">
+                <div style="font-size:18px;">📋</div>
+                <div style="font-size:16px;font-weight:700;">~101 €</div>
+                <div style="font-size:10px;color:var(--muted);">Steuer/Müll/Sonst.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gesamtbelastung Balken -->
+<div class="card">
+    <h2 style="font-size:16px;">Gesamtbelastung — Kredit vs. Nebenkosten</h2>
+    <div style="display:flex;border-radius:10px;overflow:hidden;height:44px;margin:12px 0;font-size:13px;font-weight:600;color:#fff;" id="db_main_bar">
+        <div style="background:linear-gradient(135deg,var(--red),var(--orange));display:flex;align-items:center;justify-content:center;transition:width .5s;" id="db_bar_k">Kredit</div>
+        <div style="width:25%;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;" id="db_bar_n">Nebenkosten 544 €</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);">
+        <span>Mietäquivalent: Vergleichsmiete ~10-12 €/m² = 1.180-1.416 € (kalt)</span>
+        <span id="db_qm_kosten">-</span>
+    </div>
+</div>
+
+<!-- Timeline: Meilensteine -->
+<div class="card">
+    <h2 style="font-size:16px;">Finanzierungs-Meilensteine</h2>
+    <div class="dash-timeline" style="background:#f8f8f8;border-radius:10px;overflow:hidden;">
+        <div class="dash-tl-item">
+            <div class="tl-year">2025</div>
+            <div class="tl-label">Kauf & Modernisierung</div>
+            <div class="tl-val">627.000 €</div>
+        </div>
+        <div class="dash-tl-item">
+            <div class="tl-year">2027</div>
+            <div class="tl-label">Tilgungsstart S-Förder</div>
+            <div class="tl-val">Tilgung beginnt</div>
+        </div>
+        <div class="dash-tl-item">
+            <div class="tl-year">2035</div>
+            <div class="tl-label">AG-Darlehen abbezahlt</div>
+            <div class="tl-val" style="color:var(--green);">50.000 € ✓</div>
+        </div>
+        <div class="dash-tl-item">
+            <div class="tl-year">2036</div>
+            <div class="tl-label">Zinsbindung endet</div>
+            <div class="tl-val" id="db_tl_2036">Anschluss</div>
+        </div>
+        <div class="dash-tl-item">
+            <div class="tl-year" id="db_tl_frei_y">~2057</div>
+            <div class="tl-label">Schuldenfrei</div>
+            <div class="tl-val" style="color:var(--green);">0 € 🎉</div>
+        </div>
+    </div>
+</div>
+
+<!-- Schnellinfo Energieverbrauch -->
+<div class="two-col">
+    <div class="card" style="border-left:4px solid var(--orange);">
+        <h2 style="font-size:16px;">Energieverbrauch 2024/25</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:10px;">
+            <div style="text-align:center;">
+                <div style="font-size:28px;font-weight:800;color:var(--orange);">18.157</div>
+                <div style="font-size:11px;color:var(--muted);">kWh Gas</div>
+                <div style="font-size:11px;color:var(--orange);">+9,7% ↑</div>
+            </div>
+            <div style="text-align:center;">
+                <div style="font-size:28px;font-weight:800;color:var(--green);">1.917</div>
+                <div style="font-size:11px;color:var(--muted);">kWh Strom</div>
+                <div style="font-size:11px;color:var(--green);">-21% ↓</div>
+            </div>
+            <div style="text-align:center;">
+                <div style="font-size:28px;font-weight:800;color:var(--blue);">74</div>
+                <div style="font-size:11px;color:var(--muted);">m³ Wasser</div>
+                <div style="font-size:11px;color:var(--muted);">±0%</div>
+            </div>
+        </div>
+        <div style="margin-top:12px;padding:10px;background:#fff8e1;border-radius:8px;font-size:12px;">
+            <strong style="color:var(--orange);">Energieausweis Klasse F</strong> — 199,2 kWh/(m²·a) | CO₂: 49,9 kg/(m²·a) | Empfehlung: Dach + Wände + Keller dämmen
+        </div>
+    </div>
+    <div class="card" style="border-left:4px solid var(--green);">
+        <h2 style="font-size:16px;">Guthaben aus Jahresabrechnungen</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;">
+            <div style="background:#e8f5e9;border-radius:8px;padding:14px;text-align:center;">
+                <div style="font-size:11px;color:var(--muted);">Gas-Guthaben</div>
+                <div style="font-size:24px;font-weight:800;color:var(--green);">+465 €</div>
+                <div style="font-size:11px;color:var(--muted);">Stadtwerke Essen</div>
+            </div>
+            <div style="background:#e8f5e9;border-radius:8px;padding:14px;text-align:center;">
+                <div style="font-size:11px;color:var(--muted);">Strom-Guthaben</div>
+                <div style="font-size:24px;font-weight:800;color:var(--green);">+179 €</div>
+                <div style="font-size:11px;color:var(--muted);">E.ON</div>
+            </div>
+        </div>
+        <div style="text-align:center;margin-top:12px;padding:10px;background:#e8f5e9;border-radius:8px;">
+            <div style="font-size:13px;color:var(--muted);">Gesamtes Guthaben</div>
+            <div style="font-size:28px;font-weight:800;color:var(--green);">+644 €</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+    <button onclick="switchDash('kredit')" style="padding:10px 20px;background:var(--red);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">→ Kredit-Details & Tilgungsplan</button>
+    <button onclick="switchDash('nebenkosten')" style="padding:10px 20px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">→ Nebenkosten-Details</button>
+</div>
+
+</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 2: FINANZIERUNG & KREDITE -->
+<!-- ============================================================ -->
+<div class="dash-section" id="sec-kredit">
 <div class="container">
 
 <!-- Kostenübersicht Visualisierung -->
@@ -275,11 +558,16 @@ async function checkAuth(){
     <div id="tab-ag" class="tab-panel"></div>
     <div id="tab-bauspar" class="tab-panel"></div>
 </div>
+</div>
+</div>
 
 <!-- ============================================================ -->
-<!-- NEBENKOSTEN / BETRIEBSKOSTEN DASHBOARD -->
+<!-- SECTION 3: NEBENKOSTEN & BETRIEB -->
 <!-- ============================================================ -->
-<div class="card" style="border-left:4px solid var(--green);margin-top:30px;">
+<div class="dash-section" id="sec-nebenkosten">
+<div class="container">
+
+<div class="card" style="border-left:4px solid var(--green);margin-top:0;">
     <h2 style="font-size:18px;margin-bottom:4px;">Gesamtbelastung: Kredit vs. Nebenkosten</h2>
     <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Monatliche Gesamtkosten für Herbrüggenbusch 39 — Kreditraten + laufende Betriebskosten</p>
 
@@ -557,8 +845,32 @@ async function checkAuth(){
 </div>
 
 </div>
+</div>
 
 <script>
+// === DASHBOARD NAVIGATION ===
+function switchDash(section) {
+    document.querySelectorAll('.dash-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.dash-nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('sec-' + section).classList.add('active');
+    event.target.classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+}
+// Also handle nav clicks properly
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.dash-nav-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const sections = {'Dashboard':'overview','Finanzierung & Kredite':'kredit','Nebenkosten & Betrieb':'nebenkosten'};
+            const sec = sections[this.textContent] || 'overview';
+            document.querySelectorAll('.dash-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.dash-nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('sec-' + sec).classList.add('active');
+            this.classList.add('active');
+            window.scrollTo({top:0, behavior:'smooth'});
+        });
+    });
+});
+
 const F = n => new Intl.NumberFormat('de-DE',{maximumFractionDigits:0}).format(Math.round(n));
 const F2 = n => new Intl.NumberFormat('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
 const PROP_VALUE = 575000; // Kaufpreis + Modernisierung (Nebenkosten erhöhen nicht den Wert)
@@ -909,6 +1221,44 @@ function run() {
     document.getElementById('nk_bar_kredit').textContent = `Kredit ${F(monthlyP1)} € (${kreditPct.toFixed(0)}%)`;
     document.getElementById('nk_bar_nk').style.width = nkPct.toFixed(1) + '%';
     document.getElementById('nk_bar_nk').textContent = `Nebenkosten ${nkMonat} € (${nkPct.toFixed(0)}%)`;
+
+    // === OVERVIEW DASHBOARD KPIs ===
+    document.getElementById('db_total').textContent = F(monthlyP1 + nkMonat) + ' €';
+    document.getElementById('db_kredit').textContent = F(monthlyP1) + ' €';
+
+    // Restschuld nach ~1 Jahr (approx from trimmed data)
+    const currentDebt = trimmed.length > 1 ? trimmed[1].totalDebt : 557000;
+    document.getElementById('db_restschuld').textContent = F(currentDebt) + ' €';
+    document.getElementById('db_schuldenfrei').textContent = debtFree ? '~' + debtFree.y : '>2062';
+    if (debtFree) document.getElementById('db_tl_frei_y').textContent = '~' + debtFree.y;
+
+    // Gauge (percent tilgt)
+    const tilgtPct = ((557000 - currentDebt) / 557000 * 100);
+    const circumference = 2 * Math.PI * 58; // ~364.4
+    document.getElementById('db_gauge_pct').textContent = tilgtPct.toFixed(1) + '%';
+    document.getElementById('db_gauge_circle').setAttribute('stroke-dashoffset', (circumference * (1 - tilgtPct / 100)).toFixed(1));
+
+    // Progress bars (nach ~1 Jahr)
+    const fTilgt = trimmed.length > 1 ? ((100000 - trimmed[1].fBal) / 100000 * 100) : 0;
+    const sTilgt = trimmed.length > 1 ? ((137000 - trimmed[1].sBal) / 137000 * 100) : 0;
+    const nTilgt = trimmed.length > 1 ? ((270000 - trimmed[1].nBal) / 270000 * 100) : 0;
+    const agTilgt = trimmed.length > 1 ? ((50000 - trimmed[1].agBal) / 50000 * 100) : 0;
+    document.getElementById('db_prog_f').style.width = Math.max(0, fTilgt).toFixed(1) + '%';
+    document.getElementById('db_prog_s').style.width = Math.max(0, sTilgt).toFixed(1) + '%';
+    document.getElementById('db_prog_n').style.width = Math.max(0, nTilgt).toFixed(1) + '%';
+    document.getElementById('db_prog_ag').style.width = Math.max(0, agTilgt).toFixed(1) + '%';
+
+    // Kosten pro qm
+    document.getElementById('db_qm_kosten').textContent = `= ${F2((monthlyP1 + nkMonat) / 118)} €/m² (bei 118 m² Wohnfläche)`;
+
+    // Main bar
+    document.getElementById('db_bar_k').style.width = kreditPct.toFixed(1) + '%';
+    document.getElementById('db_bar_k').textContent = `Kredit ${F(monthlyP1)} € (${kreditPct.toFixed(0)}%)`;
+    document.getElementById('db_bar_n').style.width = nkPct.toFixed(1) + '%';
+    document.getElementById('db_bar_n').textContent = `Nebenkosten ${nkMonat} € (${nkPct.toFixed(0)}%)`;
+
+    // Restschuld 2036 for timeline
+    document.getElementById('db_tl_2036').textContent = `RS: ${F(d2036.fBal + d2036.sBal + d2036.nBal)} €`;
 
     // === CHARTS ===
     const labels = trimmed.map(d => d.y + '');
