@@ -275,6 +275,287 @@ async function checkAuth(){
     <div id="tab-ag" class="tab-panel"></div>
     <div id="tab-bauspar" class="tab-panel"></div>
 </div>
+
+<!-- ============================================================ -->
+<!-- NEBENKOSTEN / BETRIEBSKOSTEN DASHBOARD -->
+<!-- ============================================================ -->
+<div class="card" style="border-left:4px solid var(--green);margin-top:30px;">
+    <h2 style="font-size:18px;margin-bottom:4px;">Gesamtbelastung: Kredit vs. Nebenkosten</h2>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Monatliche Gesamtkosten für Herbrüggenbusch 39 — Kreditraten + laufende Betriebskosten</p>
+
+    <div class="kpi-row">
+        <div class="kpi" style="border-left:3px solid var(--red);">
+            <div class="label">Kreditraten (Phase 1)</div>
+            <div class="val" style="color:var(--red)" id="nk_kredit">-</div>
+            <div class="sub">Alle Darlehen + Bauspar + Steuer AG</div>
+        </div>
+        <div class="kpi" style="border-left:3px solid var(--blue);">
+            <div class="label">Nebenkosten / Monat</div>
+            <div class="val" style="color:var(--blue)">544 €</div>
+            <div class="sub">Gas + Strom + Wasser + Versicherung + Wartung</div>
+        </div>
+        <div class="kpi" style="border-left:3px solid var(--green);">
+            <div class="label">Gesamtbelastung / Monat</div>
+            <div class="val" style="color:var(--green)" id="nk_gesamt">-</div>
+            <div class="sub">Kredit + Nebenkosten zusammen</div>
+        </div>
+        <div class="kpi" style="border-left:3px solid var(--orange);">
+            <div class="label">Nebenkosten / Jahr</div>
+            <div class="val" style="color:var(--orange)">6.531 €</div>
+            <div class="sub">Summe aller Betriebskosten p.a.</div>
+        </div>
+    </div>
+
+    <!-- Kredit vs. NK Balken -->
+    <div style="margin:16px 0 8px;font-size:12px;color:var(--muted);">Anteil Kredit vs. Nebenkosten an Gesamtbelastung:</div>
+    <div style="display:flex;border-radius:8px;overflow:hidden;height:36px;margin-bottom:20px;" id="nk_bar">
+        <div id="nk_bar_kredit" style="background:var(--red);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600;transition:width .5s;">Kredit</div>
+        <div style="width:25%;background:var(--blue);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600;" id="nk_bar_nk">Nebenkosten 544 €</div>
+    </div>
+</div>
+
+<!-- Nebenkosten Detail Dashboard -->
+<div class="card">
+    <h2>Betriebskosten-Dashboard — Jahresrechnungen 2024/25</h2>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Basierend auf den aktuellen Jahresabrechnungen. Alle Werte brutto.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:20px;">
+
+        <!-- GAS -->
+        <div style="background:#fff8e1;border-radius:10px;padding:16px;border:1px solid #ffe082;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div style="font-size:14px;font-weight:700;color:var(--orange);">🔥 Gas (Heizung & Warmwasser)</div>
+                <div style="font-size:11px;color:var(--muted);">Stadtwerke Essen</div>
+            </div>
+            <div style="font-size:28px;font-weight:700;margin-bottom:4px;">2.296 €<span style="font-size:13px;font-weight:400;color:var(--muted);"> / Jahr</span></div>
+            <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">= 191 € / Monat</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Verbrauch</div>
+                    <div style="font-size:15px;font-weight:600;">18.157 kWh</div>
+                    <div style="font-size:10px;color:var(--orange);">+9,7% vs. Vorjahr</div>
+                </div>
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Neuer Abschlag</div>
+                    <div style="font-size:15px;font-weight:600;">225 € / Monat</div>
+                    <div style="font-size:10px;color:var(--green);">Guthaben: 465 €</div>
+                </div>
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">CO₂-Kosten</div>
+                    <div style="font-size:15px;font-weight:600;">197 €</div>
+                    <div style="font-size:10px;color:var(--muted);">3.294 kg CO₂</div>
+                </div>
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Preis / kWh</div>
+                    <div style="font-size:15px;font-weight:600;">~12,6 ct</div>
+                    <div style="font-size:10px;color:var(--muted);">Brutto inkl. Grundpreis</div>
+                </div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:8px;">Vertrag: EssenGas "M" | Kündbar: 31.07.2025 (1 Monat Frist)</div>
+        </div>
+
+        <!-- STROM -->
+        <div style="background:#e8f5e9;border-radius:10px;padding:16px;border:1px solid #a5d6a7;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div style="font-size:14px;font-weight:700;color:var(--green);">⚡ Strom</div>
+                <div style="font-size:11px;color:var(--muted);">E.ON</div>
+            </div>
+            <div style="font-size:28px;font-weight:700;margin-bottom:4px;">939 €<span style="font-size:13px;font-weight:400;color:var(--muted);"> / Jahr</span></div>
+            <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">= 78 € / Monat</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Verbrauch</div>
+                    <div style="font-size:15px;font-weight:600;">1.917 kWh</div>
+                    <div style="font-size:10px;color:var(--green);">-21% vs. Vorjahr</div>
+                </div>
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Neuer Abschlag</div>
+                    <div style="font-size:15px;font-weight:600;">83 € / Monat</div>
+                    <div style="font-size:10px;color:var(--green);">Guthaben: 179 €</div>
+                </div>
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Tarif ab 02/2026</div>
+                    <div style="font-size:15px;font-weight:600;">35,44 ct/kWh</div>
+                    <div style="font-size:10px;color:var(--muted);">Strom Stabil</div>
+                </div>
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Grundpreis</div>
+                    <div style="font-size:15px;font-weight:600;">319 € / Jahr</div>
+                    <div style="font-size:10px;color:var(--muted);">294 € + 25 € Zähler</div>
+                </div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:8px;">Zähler: 1EMH0011116039 (moderner Zähler)</div>
+        </div>
+
+        <!-- WASSER -->
+        <div style="background:#e3f2fd;border-radius:10px;padding:16px;border:1px solid #90caf9;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div style="font-size:14px;font-weight:700;color:var(--blue);">💧 Wasser</div>
+                <div style="font-size:11px;color:var(--muted);">Stadtwerke Essen</div>
+            </div>
+            <div style="font-size:28px;font-weight:700;margin-bottom:4px;">412 €<span style="font-size:13px;font-weight:400;color:var(--muted);"> / Jahr</span></div>
+            <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">= 34 € / Monat</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Verbrauch</div>
+                    <div style="font-size:15px;font-weight:600;">74 m³</div>
+                    <div style="font-size:10px;color:var(--muted);">= Vorjahr (74 m³)</div>
+                </div>
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Abschlag</div>
+                    <div style="font-size:15px;font-weight:600;">82 € / 2 Monate</div>
+                    <div style="font-size:10px;color:var(--muted);">= 41 € / Monat</div>
+                </div>
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Grundpreis</div>
+                    <div style="font-size:15px;font-weight:600;">233 € / Jahr</div>
+                    <div style="font-size:10px;color:var(--muted);">Wasser-Tarifkunden</div>
+                </div>
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Arbeitspreis</div>
+                    <div style="font-size:15px;font-weight:600;">2,07 € / m³</div>
+                    <div style="font-size:10px;color:var(--muted);">inkl. 7% MwSt</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VERSICHERUNG -->
+        <div style="background:#fce4ec;border-radius:10px;padding:16px;border:1px solid #f48fb1;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div style="font-size:14px;font-weight:700;color:#c62828;">🛡️ Wohngebäudeversicherung</div>
+                <div style="font-size:11px;color:var(--muted);">HUK-COBURG</div>
+            </div>
+            <div style="font-size:28px;font-weight:700;margin-bottom:4px;">675 €<span style="font-size:13px;font-weight:400;color:var(--muted);"> / Jahr</span></div>
+            <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">= 56 € / Monat (Halbjahresbeitrag: 337,64 €)</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Feuer</div>
+                    <div style="font-size:14px;font-weight:600;">43,22 €</div>
+                </div>
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Wasser</div>
+                    <div style="font-size:14px;font-weight:600;">150,49 €</div>
+                </div>
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Sturm & Hagel</div>
+                    <div style="font-size:14px;font-weight:600;">80,05 €</div>
+                </div>
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Naturgefahren</div>
+                    <div style="font-size:14px;font-weight:600;">45,74 €</div>
+                </div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:8px;">Classic + PLUS + Schutzbrief | Anpassungsfaktor: 27,80 | Notruf: 069 66 555 11</div>
+        </div>
+
+        <!-- WARTUNG / SCHORNSTEINFEGER -->
+        <div style="background:#f3e5f5;border-radius:10px;padding:16px;border:1px solid #ce93d8;">
+            <div style="font-size:14px;font-weight:700;color:var(--purple);margin-bottom:8px;">🔧 Wartung & Schornsteinfeger</div>
+            <div style="font-size:28px;font-weight:700;margin-bottom:4px;">453 €<span style="font-size:13px;font-weight:400;color:var(--muted);"> / Jahr</span></div>
+            <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">= 38 € / Monat</div>
+            <div style="display:grid;grid-template-columns:1fr;gap:8px;">
+                <div style="background:#fff;border-radius:6px;padding:10px;">
+                    <div style="display:flex;justify-content:space-between;">
+                        <div>
+                            <div style="font-size:12px;font-weight:600;">Heizungswartung (Grän GmbH)</div>
+                            <div style="font-size:11px;color:var(--muted);">Junkers ZBS 3-16 MRA23 | 26.03.2025</div>
+                        </div>
+                        <div style="font-size:15px;font-weight:700;">452,62 €</div>
+                    </div>
+                </div>
+                <div style="background:#fff;border-radius:6px;padding:10px;">
+                    <div style="display:flex;justify-content:space-between;">
+                        <div>
+                            <div style="font-size:12px;font-weight:600;">Schornsteinfeger (Menninger)</div>
+                            <div style="font-size:11px;color:var(--muted);">Überprüfung § 1 KÜO | 13.06.2024 | Keine Mängel</div>
+                        </div>
+                        <div style="font-size:15px;font-weight:700;">inkl.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ENERGIEAUSWEIS -->
+        <div style="background:#fff3e0;border-radius:10px;padding:16px;border:1px solid #ffcc80;">
+            <div style="font-size:14px;font-weight:700;color:var(--orange);margin-bottom:8px;">📊 Energieausweis</div>
+            <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px;">
+                <div style="font-size:28px;font-weight:700;">F</div>
+                <div style="font-size:13px;color:var(--muted);">199,2 kWh/(m²·a) Endenergiebedarf</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Gebäude</div>
+                    <div style="font-size:13px;font-weight:600;">EFH-Reiheneck, Bj. 1968</div>
+                </div>
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Nutzfläche</div>
+                    <div style="font-size:13px;font-weight:600;">173,1 m² (AN)</div>
+                </div>
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">Heizung</div>
+                    <div style="font-size:13px;font-weight:600;">Junkers Gaskessel (2004)</div>
+                </div>
+                <div style="background:#fff;border-radius:6px;padding:8px;">
+                    <div style="font-size:11px;color:var(--muted);">CO₂-Emissionen</div>
+                    <div style="font-size:13px;font-weight:600;">49,9 kg/(m²·a)</div>
+                </div>
+            </div>
+            <!-- Energieskala -->
+            <div style="margin-top:10px;">
+                <div style="display:flex;height:18px;border-radius:4px;overflow:hidden;font-size:9px;font-weight:600;color:#fff;">
+                    <div style="flex:1;background:#00933b;display:flex;align-items:center;justify-content:center;">A+</div>
+                    <div style="flex:1;background:#42a534;">A</div>
+                    <div style="flex:1;background:#b5cc18;">B</div>
+                    <div style="flex:1;background:#f2e500;color:#333;">C</div>
+                    <div style="flex:1;background:#ecb100;">D</div>
+                    <div style="flex:1;background:#e17d00;">E</div>
+                    <div style="flex:1;background:#cc0c13;position:relative;display:flex;align-items:center;justify-content:center;">F ▼</div>
+                    <div style="flex:1;background:#9d0b0e;">G</div>
+                    <div style="flex:1;background:#6d0911;">H</div>
+                </div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:8px;">Gültig bis: 08.02.2036 | Empfehlung: Dach (24cm), Wände (16cm), Keller (10cm) dämmen</div>
+        </div>
+    </div>
+
+    <!-- Zusammenfassung Tabelle -->
+    <h2 style="margin-top:10px;">Jährliche Nebenkosten-Übersicht</h2>
+    <div style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr><th>Kostenart</th><th>Anbieter</th><th class="r">Brutto / Jahr</th><th class="r">Brutto / Monat</th><th class="r">Anteil</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>🔥 Gas</td><td>Stadtwerke Essen</td><td class="r"><strong>2.296 €</strong></td><td class="r">191 €</td><td class="r">35,1%</td></tr>
+                <tr><td>⚡ Strom</td><td>E.ON</td><td class="r"><strong>939 €</strong></td><td class="r">78 €</td><td class="r">14,4%</td></tr>
+                <tr><td>💧 Wasser</td><td>Stadtwerke Essen</td><td class="r"><strong>412 €</strong></td><td class="r">34 €</td><td class="r">6,3%</td></tr>
+                <tr><td>🛡️ Gebäudeversicherung</td><td>HUK-COBURG</td><td class="r"><strong>675 €</strong></td><td class="r">56 €</td><td class="r">10,3%</td></tr>
+                <tr><td>🔧 Wartung Heizung</td><td>Grän GmbH</td><td class="r"><strong>453 €</strong></td><td class="r">38 €</td><td class="r">6,9%</td></tr>
+                <tr style="background:#f0f0f0;font-weight:700;"><td>Summe Nebenkosten (bekannt)</td><td></td><td class="r">4.775 €</td><td class="r">398 €</td><td class="r">73,1%</td></tr>
+                <tr style="color:var(--muted);"><td>📋 Grundsteuer (geschätzt)</td><td>Stadt Essen</td><td class="r">~600 €</td><td class="r">~50 €</td><td class="r">9,2%</td></tr>
+                <tr style="color:var(--muted);"><td>🗑️ Müllgebühren (geschätzt)</td><td>Stadt Essen</td><td class="r">~400 €</td><td class="r">~33 €</td><td class="r">6,1%</td></tr>
+                <tr style="color:var(--muted);"><td>🧹 Rücklagen & Sonstiges (geschätzt)</td><td>—</td><td class="r">~756 €</td><td class="r">~63 €</td><td class="r">11,6%</td></tr>
+                <tr style="background:#e8f5e9;font-weight:700;font-size:14px;"><td>Gesamte Nebenkosten (inkl. Schätzung)</td><td></td><td class="r">~6.531 €</td><td class="r">~544 €</td><td class="r">100%</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Nebenkosten Donut Chart -->
+    <div style="margin-top:18px;">
+        <h2>Nebenkosten-Verteilung</h2>
+        <div style="display:flex;border-radius:8px;overflow:hidden;height:32px;margin-top:8px;">
+            <div style="width:35.1%;background:var(--orange);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600;">Gas 35%</div>
+            <div style="width:14.4%;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600;">Strom 14%</div>
+            <div style="width:6.3%;background:var(--blue);display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:600;"></div>
+            <div style="width:10.3%;background:#c62828;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600;">Vers. 10%</div>
+            <div style="width:6.9%;background:var(--purple);display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:600;">W</div>
+            <div style="width:9.2%;background:#607d8b;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:600;">GrSt</div>
+            <div style="width:6.1%;background:#795548;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:600;"></div>
+            <div style="width:11.6%;background:#9e9e9e;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600;">Sonst.</div>
+        </div>
+    </div>
+</div>
+
 </div>
 
 <script>
@@ -617,6 +898,17 @@ function run() {
     const totAGSteuer = agD.totalSteuer;
     document.getElementById('k5').textContent = F(totZinsP1 + totZinsP2 + totAGSteuer + 1840) + ' €';
     document.getElementById('k5s').textContent = `Zinsen: ${F(totZinsP1 + totZinsP2)} € | AG-Steuer: ${F(totAGSteuer)} € | BSP-Gebühr: 1.840 €`;
+
+    // === NEBENKOSTEN KPIs ===
+    const nkMonat = 544;
+    document.getElementById('nk_kredit').textContent = F(monthlyP1) + ' €';
+    document.getElementById('nk_gesamt').textContent = F(monthlyP1 + nkMonat) + ' €';
+    const kreditPct = (monthlyP1 / (monthlyP1 + nkMonat) * 100);
+    const nkPct = 100 - kreditPct;
+    document.getElementById('nk_bar_kredit').style.width = kreditPct.toFixed(1) + '%';
+    document.getElementById('nk_bar_kredit').textContent = `Kredit ${F(monthlyP1)} € (${kreditPct.toFixed(0)}%)`;
+    document.getElementById('nk_bar_nk').style.width = nkPct.toFixed(1) + '%';
+    document.getElementById('nk_bar_nk').textContent = `Nebenkosten ${nkMonat} € (${nkPct.toFixed(0)}%)`;
 
     // === CHARTS ===
     const labels = trimmed.map(d => d.y + '');
