@@ -93,6 +93,42 @@
         .breakdown-note { font-size:11px; color:var(--muted); margin-top:12px; padding-top:8px; border-top:1px solid #eee; }
 
         @media(max-width:900px) { .two-col,.three-col{grid-template-columns:1fr;} .chart-wrap{height:280px;} }
+
+        /* === Umbau & Maßnahmen === */
+        .um-btn { padding:8px 16px; border:1px solid var(--border); border-radius:8px; background:#fff; font-size:13px; font-weight:500; cursor:pointer; transition:all .2s; }
+        .um-btn:hover { background:#f5f5f5; }
+        .um-btn-primary { background:var(--red); color:#fff; border-color:var(--red); }
+        .um-btn-primary:hover { background:#c1001a; }
+        .um-field { margin-bottom:14px; }
+        .um-field label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px; font-weight:600; }
+        .um-field input[type=text], .um-field input[type=number], .um-field textarea, .um-field select {
+            width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; font-family:inherit; outline:none; transition:border-color .2s;
+        }
+        .um-field input:focus, .um-field textarea:focus { border-color:var(--red); }
+        .um-color-swatch { width:32px; height:32px; border-radius:8px; border:3px solid transparent; cursor:pointer; transition:all .15s; }
+        .um-color-swatch:hover { transform:scale(1.15); }
+        .um-color-swatch.selected { border-color:#333; box-shadow:0 0 0 2px #fff, 0 0 0 4px #333; }
+        .um-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; }
+        .um-badge-yes { background:#e8f5e9; color:var(--green); }
+        .um-badge-no { background:#fce4ec; color:var(--red); }
+
+        /* Gantt */
+        .gantt-grid { display:grid; position:relative; }
+        .gantt-header { background:#f8f8f8; font-size:10px; font-weight:600; color:var(--muted); text-align:center; border-bottom:2px solid var(--border); padding:4px 0; white-space:nowrap; }
+        .gantt-month { background:#eee; font-size:11px; font-weight:700; color:#333; text-align:center; padding:3px 0; border-bottom:1px solid var(--border); }
+        .gantt-label { position:sticky; left:0; z-index:10; background:#fff; padding:6px 10px; font-size:12px; font-weight:500; border-right:2px solid var(--border); border-bottom:1px solid #f0f0f0; display:flex; align-items:center; gap:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .gantt-row-bg { border-bottom:1px solid #f0f0f0; position:relative; }
+        .gantt-bar { position:absolute; top:6px; height:28px; border-radius:6px; cursor:grab; display:flex; align-items:center; padding:0 8px; font-size:11px; font-weight:600; color:#fff; user-select:none; transition:box-shadow .15s; z-index:5; min-width:20px; }
+        .gantt-bar:hover { box-shadow:0 2px 8px rgba(0,0,0,.25); }
+        .gantt-bar:active { cursor:grabbing; }
+        .gantt-bar-resize { position:absolute; right:0; top:0; width:8px; height:100%; cursor:col-resize; border-radius:0 6px 6px 0; }
+        .gantt-today { position:absolute; top:0; bottom:0; width:2px; background:var(--red); z-index:8; pointer-events:none; }
+        .gantt-today::before { content:'Heute'; position:absolute; top:-16px; left:-14px; font-size:9px; color:var(--red); font-weight:600; }
+        .gantt-day-line { position:absolute; top:0; bottom:0; width:1px; background:#f0f0f0; pointer-events:none; }
+        .gantt-week-line { position:absolute; top:0; bottom:0; width:1px; background:#ddd; pointer-events:none; }
+        .gantt-unscheduled-item { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:8px; font-size:12px; font-weight:500; color:#fff; cursor:grab; margin:4px; user-select:none; }
+        .gantt-unscheduled-item:active { cursor:grabbing; opacity:.8; }
+        .gantt-tooltip { position:fixed; background:#333; color:#fff; padding:8px 12px; border-radius:8px; font-size:12px; pointer-events:none; z-index:1000; max-width:260px; box-shadow:0 4px 12px rgba(0,0,0,.3); }
     </style>
 </head>
 <body>
@@ -146,6 +182,7 @@ async function checkAuth(){
     <button class="dash-nav-btn active" onclick="switchDash('overview')">Dashboard</button>
     <button class="dash-nav-btn" onclick="switchDash('kredit')">Finanzierung & Kredite</button>
     <button class="dash-nav-btn" onclick="switchDash('nebenkosten')">Nebenkosten & Betrieb</button>
+    <button class="dash-nav-btn" onclick="switchDash('umbau')">Umbau & Maßnahmen</button>
 </div>
 
 <!-- ============================================================ -->
@@ -870,6 +907,137 @@ async function checkAuth(){
 </div>
 </div>
 
+<!-- ============================================================ -->
+<!-- SECTION 4: UMBAU & MASSNAHMEN -->
+<!-- ============================================================ -->
+<div class="dash-section" id="sec-umbau">
+<div class="container">
+
+<!-- Summary KPIs -->
+<div class="kpi-row" id="umbau-kpis">
+    <div class="kpi" style="border-left:3px solid var(--blue);"><div class="label">Maßnahmen gesamt</div><div class="val" id="um_count">0</div><div class="sub">angelegt</div></div>
+    <div class="kpi" style="border-left:3px solid var(--green);"><div class="label">Davon bestätigt</div><div class="val" style="color:var(--green)" id="um_confirmed">0</div><div class="sub" id="um_confirmed_sub">-</div></div>
+    <div class="kpi" style="border-left:3px solid var(--orange);"><div class="label">Geplante Kosten</div><div class="val" style="color:var(--orange)" id="um_planned">0 €</div><div class="sub">Summe aller Maßnahmen</div></div>
+    <div class="kpi" style="border-left:3px solid var(--red);"><div class="label">Ist-Kosten</div><div class="val" style="color:var(--red)" id="um_actual">0 €</div><div class="sub" id="um_diff_sub">-</div></div>
+    <div class="kpi" style="border-left:3px solid var(--purple);"><div class="label">Gesamtdauer</div><div class="val" style="color:var(--purple)" id="um_duration">-</div><div class="sub" id="um_duration_sub">-</div></div>
+</div>
+
+<!-- Tabs: Maßnahmen / Zeitplan -->
+<div class="tabs" id="umbauTabs">
+    <button class="tab-btn active" data-tab="tab-massnahmen">Maßnahmen</button>
+    <button class="tab-btn" data-tab="tab-zeitplan">Zeitplan (Gantt)</button>
+</div>
+
+<!-- Tab 1: Maßnahmen CRUD -->
+<div id="tab-massnahmen" class="tab-panel active">
+    <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h2 style="margin:0;">Maßnahmen verwalten</h2>
+            <button onclick="openMeasureForm()" class="um-btn um-btn-primary">+ Neue Maßnahme</button>
+        </div>
+        <div id="measuresTableWrap">
+            <table id="measuresTable">
+                <thead>
+                    <tr>
+                        <th style="width:30px;"></th>
+                        <th>Maßnahme</th>
+                        <th>Ausführender</th>
+                        <th class="r">Geplant</th>
+                        <th class="r">Ist-Kosten</th>
+                        <th class="r">Dauer</th>
+                        <th>Zusage</th>
+                        <th style="width:80px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="measuresBody"></tbody>
+            </table>
+            <div id="measuresEmpty" style="text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;display:none;">
+                Noch keine Maßnahmen angelegt.<br><button onclick="openMeasureForm()" style="margin-top:10px;padding:8px 16px;background:var(--red);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">Erste Maßnahme anlegen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Measure Form Overlay -->
+    <div class="overlay" id="measureOverlay">
+        <div class="overlay-box" style="max-width:520px;">
+            <button class="overlay-close" onclick="closeMeasureForm()">&times;</button>
+            <h3 id="measureFormTitle" style="font-size:18px;font-weight:700;margin-bottom:16px;">Neue Maßnahme</h3>
+            <form id="measureForm" onsubmit="saveMeasure(event)">
+                <input type="hidden" id="mf_id">
+                <div class="um-field">
+                    <label>Name *</label>
+                    <input type="text" id="mf_name" required placeholder="z.B. Dach dämmen">
+                </div>
+                <div class="um-field">
+                    <label>Beschreibung</label>
+                    <textarea id="mf_desc" rows="2" placeholder="Details zur Maßnahme..."></textarea>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="um-field">
+                        <label>Geplante Kosten (EUR) *</label>
+                        <input type="number" id="mf_planned" required min="0" step="100" placeholder="15000">
+                    </div>
+                    <div class="um-field">
+                        <label>Ist-Kosten (EUR)</label>
+                        <input type="number" id="mf_actual" min="0" step="100" placeholder="noch unbekannt">
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="um-field">
+                        <label>Ausführender *</label>
+                        <input type="text" id="mf_executor" required placeholder="Firma / Eigenleistung">
+                    </div>
+                    <div class="um-field">
+                        <label>Dauer (Tage) *</label>
+                        <input type="number" id="mf_duration" required min="1" value="7" placeholder="7">
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+                    <div class="um-field" style="margin-bottom:0;flex:1;">
+                        <label>Zusage erhalten</label>
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:400;">
+                            <input type="checkbox" id="mf_confirmed" style="accent-color:var(--green);width:18px;height:18px;"> Ja, Zusage vorhanden
+                        </label>
+                    </div>
+                </div>
+                <div class="um-field">
+                    <label>Farbe</label>
+                    <div id="mf_colors" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+                </div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                    <button type="button" onclick="closeMeasureForm()" class="um-btn">Abbrechen</button>
+                    <button type="submit" class="um-btn um-btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Tab 2: Gantt Zeitplan -->
+<div id="tab-zeitplan" class="tab-panel">
+    <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+            <h2 style="margin:0;">Zeitplan</h2>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <label style="font-size:12px;color:var(--muted);">Projektstart:</label>
+                <input type="date" id="ganttStartDate" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" onchange="renderGantt()">
+                <span style="font-size:11px;color:var(--muted);">Wochen:</span>
+                <select id="ganttWeeks" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;" onchange="renderGantt()">
+                    <option value="12">12 Wochen</option>
+                    <option value="26" selected>26 Wochen</option>
+                    <option value="39">39 Wochen</option>
+                    <option value="52">52 Wochen</option>
+                </select>
+            </div>
+        </div>
+        <div id="ganttContainer" style="overflow-x:auto;position:relative;border:1px solid var(--border);border-radius:8px;"></div>
+        <div id="ganttUnscheduled" style="margin-top:16px;"></div>
+    </div>
+</div>
+
+</div>
+</div>
+
 <script>
 // === DASHBOARD NAVIGATION ===
 function switchDash(section) {
@@ -883,7 +1051,7 @@ function switchDash(section) {
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.dash-nav-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            const sections = {'Dashboard':'overview','Finanzierung & Kredite':'kredit','Nebenkosten & Betrieb':'nebenkosten'};
+            const sections = {'Dashboard':'overview','Finanzierung & Kredite':'kredit','Nebenkosten & Betrieb':'nebenkosten','Umbau & Maßnahmen':'umbau'};
             const sec = sections[this.textContent] || 'overview';
             document.querySelectorAll('.dash-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.dash-nav-btn').forEach(b => b.classList.remove('active'));
@@ -1804,6 +1972,403 @@ function showRate(year) {
 ['inST', 'inAR', 'inAT'].forEach(id => document.getElementById(id).addEventListener('input', run));
 ['inBU', 'inCmp'].forEach(id => document.getElementById(id).addEventListener('change', run));
 run();
+
+// ============================================================
+// UMBAU & MASSNAHMEN
+// ============================================================
+(function() {
+    const COLORS = ['#e2001a','#1565c0','#ef6c00','#2e7d32','#7b1fa2','#00796b','#c62828','#f57c00'];
+    const STORAGE_KEY = 'umbau_measures';
+    const GANTT_START_KEY = 'umbau_gantt_start';
+    let measures = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    let selectedColor = COLORS[0];
+    let dragState = null;
+    let tooltipEl = null;
+
+    // Init gantt start date
+    const ganttDateInput = document.getElementById('ganttStartDate');
+    ganttDateInput.value = localStorage.getItem(GANTT_START_KEY) || new Date().toISOString().slice(0,10);
+    ganttDateInput.addEventListener('change', () => {
+        localStorage.setItem(GANTT_START_KEY, ganttDateInput.value);
+    });
+
+    // Tab switching for umbau tabs
+    document.getElementById('umbauTabs').addEventListener('click', e => {
+        const btn = e.target.closest('.tab-btn');
+        if (!btn) return;
+        document.querySelectorAll('#umbauTabs .tab-btn').forEach(b => b.classList.remove('active'));
+        ['tab-massnahmen','tab-zeitplan'].forEach(id => document.getElementById(id).classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+        if (btn.dataset.tab === 'tab-zeitplan') renderGantt();
+    });
+
+    // === PERSISTENCE ===
+    function save() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(measures));
+        renderTable();
+        renderKPIs();
+    }
+
+    // === KPIs ===
+    function renderKPIs() {
+        const fmt = n => new Intl.NumberFormat('de-DE',{maximumFractionDigits:0}).format(Math.round(n));
+        document.getElementById('um_count').textContent = measures.length;
+        const confirmed = measures.filter(m => m.confirmed).length;
+        document.getElementById('um_confirmed').textContent = confirmed;
+        document.getElementById('um_confirmed_sub').textContent = measures.length ? `${confirmed} von ${measures.length}` : '-';
+        const planned = measures.reduce((s,m) => s + (m.plannedCost||0), 0);
+        const actual = measures.reduce((s,m) => s + (m.actualCost||0), 0);
+        document.getElementById('um_planned').textContent = fmt(planned) + ' €';
+        document.getElementById('um_actual').textContent = actual > 0 ? fmt(actual) + ' €' : '0 €';
+        const diff = actual - planned;
+        document.getElementById('um_diff_sub').textContent = actual > 0 ? (diff >= 0 ? '+' : '') + fmt(diff) + ' € vs. Planung' : '-';
+
+        const scheduled = measures.filter(m => m.startDay !== null && m.startDay !== undefined);
+        if (scheduled.length > 0) {
+            const minStart = Math.min(...scheduled.map(m => m.startDay));
+            const maxEnd = Math.max(...scheduled.map(m => m.startDay + m.durationDays));
+            document.getElementById('um_duration').textContent = (maxEnd - minStart) + ' Tage';
+            document.getElementById('um_duration_sub').textContent = `Tag ${minStart+1} bis Tag ${maxEnd}`;
+        } else {
+            document.getElementById('um_duration').textContent = '-';
+            document.getElementById('um_duration_sub').textContent = 'Noch keine eingeplant';
+        }
+    }
+
+    // === TABLE ===
+    function renderTable() {
+        const body = document.getElementById('measuresBody');
+        const empty = document.getElementById('measuresEmpty');
+        const fmt = n => new Intl.NumberFormat('de-DE',{maximumFractionDigits:0}).format(Math.round(n));
+        if (measures.length === 0) {
+            body.innerHTML = '';
+            empty.style.display = 'block';
+            return;
+        }
+        empty.style.display = 'none';
+        body.innerHTML = measures.map((m, i) => `
+            <tr>
+                <td><div style="width:16px;height:16px;border-radius:4px;background:${m.color}"></div></td>
+                <td><strong>${esc(m.name)}</strong>${m.description ? '<br><span style="font-size:11px;color:var(--muted);">'+esc(m.description)+'</span>' : ''}</td>
+                <td>${esc(m.executor)}</td>
+                <td class="r">${fmt(m.plannedCost)} €</td>
+                <td class="r">${m.actualCost !== null && m.actualCost !== undefined && m.actualCost !== '' ? fmt(m.actualCost) + ' €' : '<span style="color:var(--muted);">-</span>'}</td>
+                <td class="r">${m.durationDays} Tag${m.durationDays !== 1 ? 'e' : ''}</td>
+                <td><span class="um-badge ${m.confirmed ? 'um-badge-yes' : 'um-badge-no'}">${m.confirmed ? 'Ja' : 'Nein'}</span></td>
+                <td style="white-space:nowrap;">
+                    <button onclick="editMeasure(${i})" style="background:none;border:none;cursor:pointer;font-size:14px;" title="Bearbeiten">✏️</button>
+                    <button onclick="deleteMeasure(${i})" style="background:none;border:none;cursor:pointer;font-size:14px;" title="Löschen">🗑️</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s||''; return d.innerHTML; }
+
+    // === FORM ===
+    window.openMeasureForm = function(idx) {
+        const form = document.getElementById('measureForm');
+        form.reset();
+        document.getElementById('mf_id').value = '';
+        document.getElementById('measureFormTitle').textContent = 'Neue Maßnahme';
+        selectedColor = COLORS[measures.length % COLORS.length];
+        if (idx !== undefined) {
+            const m = measures[idx];
+            document.getElementById('mf_id').value = idx;
+            document.getElementById('mf_name').value = m.name;
+            document.getElementById('mf_desc').value = m.description || '';
+            document.getElementById('mf_planned').value = m.plannedCost;
+            document.getElementById('mf_actual').value = m.actualCost !== null && m.actualCost !== undefined ? m.actualCost : '';
+            document.getElementById('mf_executor').value = m.executor;
+            document.getElementById('mf_duration').value = m.durationDays;
+            document.getElementById('mf_confirmed').checked = m.confirmed;
+            selectedColor = m.color;
+            document.getElementById('measureFormTitle').textContent = 'Maßnahme bearbeiten';
+        }
+        renderColorSwatches();
+        document.getElementById('measureOverlay').classList.add('open');
+    };
+
+    window.editMeasure = function(idx) { window.openMeasureForm(idx); };
+
+    window.closeMeasureForm = function() {
+        document.getElementById('measureOverlay').classList.remove('open');
+    };
+
+    document.getElementById('measureOverlay').addEventListener('click', e => {
+        if (e.target.id === 'measureOverlay') window.closeMeasureForm();
+    });
+
+    function renderColorSwatches() {
+        const wrap = document.getElementById('mf_colors');
+        wrap.innerHTML = COLORS.map(c =>
+            `<div class="um-color-swatch ${c === selectedColor ? 'selected' : ''}" style="background:${c};" onclick="selectMColor('${c}')"></div>`
+        ).join('');
+    }
+
+    window.selectMColor = function(c) {
+        selectedColor = c;
+        renderColorSwatches();
+    };
+
+    window.saveMeasure = function(e) {
+        e.preventDefault();
+        const idVal = document.getElementById('mf_id').value;
+        const actualVal = document.getElementById('mf_actual').value;
+        const data = {
+            name: document.getElementById('mf_name').value.trim(),
+            description: document.getElementById('mf_desc').value.trim(),
+            plannedCost: parseFloat(document.getElementById('mf_planned').value) || 0,
+            actualCost: actualVal !== '' ? parseFloat(actualVal) : null,
+            executor: document.getElementById('mf_executor').value.trim(),
+            durationDays: parseInt(document.getElementById('mf_duration').value) || 7,
+            confirmed: document.getElementById('mf_confirmed').checked,
+            color: selectedColor,
+        };
+        if (idVal !== '') {
+            const idx = parseInt(idVal);
+            data.startDay = measures[idx].startDay;
+            measures[idx] = data;
+        } else {
+            data.startDay = null;
+            measures.push(data);
+        }
+        save();
+        window.closeMeasureForm();
+    };
+
+    window.deleteMeasure = function(idx) {
+        if (!confirm('Maßnahme "' + measures[idx].name + '" wirklich löschen?')) return;
+        measures.splice(idx, 1);
+        save();
+    };
+
+    // === GANTT ===
+    const DAY_PX = 36;
+    const ROW_H = 40;
+    const LABEL_W = 180;
+
+    window.renderGantt = function() {
+        const container = document.getElementById('ganttContainer');
+        const startDate = new Date(ganttDateInput.value + 'T00:00:00');
+        const totalWeeks = parseInt(document.getElementById('ganttWeeks').value);
+        const totalDays = totalWeeks * 7;
+        const gridW = LABEL_W + totalDays * DAY_PX;
+        const scheduled = measures.filter(m => m.startDay !== null && m.startDay !== undefined);
+        const unscheduled = measures.filter(m => m.startDay === null || m.startDay === undefined);
+
+        if (measures.length === 0) {
+            container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:14px;">Lege zuerst Maßnahmen an, um sie hier einzuplanen.</div>';
+            document.getElementById('ganttUnscheduled').innerHTML = '';
+            return;
+        }
+
+        // Build month header
+        let monthsHtml = `<div style="display:flex;position:sticky;top:0;z-index:20;">`;
+        monthsHtml += `<div style="width:${LABEL_W}px;min-width:${LABEL_W}px;background:#eee;border-right:2px solid var(--border);border-bottom:1px solid var(--border);padding:3px 10px;font-size:11px;font-weight:600;">Maßnahme</div>`;
+        let curMonth = -1;
+        let monthSpans = [];
+        for (let d = 0; d < totalDays; d++) {
+            const date = new Date(startDate);
+            date.setDate(date.getDate() + d);
+            const m = date.getMonth();
+            if (m !== curMonth) {
+                monthSpans.push({ month: date.toLocaleDateString('de-DE',{month:'long',year:'numeric'}), days: 1 });
+                curMonth = m;
+            } else {
+                monthSpans[monthSpans.length-1].days++;
+            }
+        }
+        for (const ms of monthSpans) {
+            monthsHtml += `<div class="gantt-month" style="width:${ms.days * DAY_PX}px;min-width:${ms.days * DAY_PX}px;">${ms.month}</div>`;
+        }
+        monthsHtml += `</div>`;
+
+        // Week/day header
+        let headerHtml = `<div style="display:flex;position:sticky;top:26px;z-index:19;">`;
+        headerHtml += `<div style="width:${LABEL_W}px;min-width:${LABEL_W}px;background:#f8f8f8;border-right:2px solid var(--border);border-bottom:2px solid var(--border);"></div>`;
+        for (let d = 0; d < totalDays; d++) {
+            const date = new Date(startDate);
+            date.setDate(date.getDate() + d);
+            const isMonday = date.getDay() === 1;
+            const isSunday = date.getDay() === 0;
+            const isSaturday = date.getDay() === 6;
+            const bg = (isSaturday || isSunday) ? '#f0f0f0' : '#f8f8f8';
+            const borderL = isMonday ? 'border-left:1px solid #ccc;' : '';
+            headerHtml += `<div class="gantt-header" style="width:${DAY_PX}px;min-width:${DAY_PX}px;background:${bg};${borderL}">${date.getDate()}</div>`;
+        }
+        headerHtml += `</div>`;
+
+        // Rows
+        let rowsHtml = `<div style="position:relative;">`;
+        scheduled.forEach((m, si) => {
+            const mIdx = measures.indexOf(m);
+            rowsHtml += `<div style="display:flex;height:${ROW_H}px;">`;
+            rowsHtml += `<div class="gantt-label" style="width:${LABEL_W}px;min-width:${LABEL_W}px;height:${ROW_H}px;"><div style="width:10px;height:10px;border-radius:3px;background:${m.color};flex-shrink:0;"></div>${esc(m.name)}</div>`;
+            rowsHtml += `<div class="gantt-row-bg" style="flex:1;height:${ROW_H}px;position:relative;" data-midx="${mIdx}">`;
+
+            // Day backgrounds
+            for (let d = 0; d < totalDays; d++) {
+                const date = new Date(startDate);
+                date.setDate(date.getDate() + d);
+                const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                const isMonday = date.getDay() === 1;
+                if (isWeekend) {
+                    rowsHtml += `<div style="position:absolute;left:${d*DAY_PX}px;top:0;width:${DAY_PX}px;height:100%;background:rgba(0,0,0,.03);pointer-events:none;"></div>`;
+                }
+                if (isMonday) {
+                    rowsHtml += `<div class="gantt-week-line" style="left:${d*DAY_PX}px;"></div>`;
+                }
+            }
+
+            // Bar
+            const barLeft = (m.startDay||0) * DAY_PX;
+            const barW = m.durationDays * DAY_PX;
+            rowsHtml += `<div class="gantt-bar" style="left:${barLeft}px;width:${barW}px;background:${m.color};" data-midx="${mIdx}"
+                onpointerdown="ganttPointerDown(event,${mIdx})"
+                onpointermove="ganttPointerMove(event)"
+                onpointerup="ganttPointerUp(event)"
+                onmouseenter="showGanttTooltip(event,${mIdx})"
+                onmouseleave="hideGanttTooltip()">
+                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${esc(m.name)}</span>
+                <div class="gantt-bar-resize" data-resize="1"></div>
+            </div>`;
+
+            rowsHtml += `</div></div>`;
+        });
+
+        // Today line
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const todayOffset = Math.round((today - startDate) / (1000*60*60*24));
+        if (todayOffset >= 0 && todayOffset < totalDays) {
+            rowsHtml += `<div class="gantt-today" style="left:${LABEL_W + todayOffset * DAY_PX}px;"></div>`;
+        }
+
+        rowsHtml += `</div>`;
+
+        container.innerHTML = monthsHtml + headerHtml + rowsHtml;
+
+        // Unscheduled
+        const unschedWrap = document.getElementById('ganttUnscheduled');
+        if (unscheduled.length > 0) {
+            let h = `<div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">Nicht eingeplant — auf den Zeitplan ziehen:</div>`;
+            unscheduled.forEach(m => {
+                const mIdx = measures.indexOf(m);
+                h += `<div class="gantt-unscheduled-item" style="background:${m.color};" draggable="true"
+                    ondragstart="ganttUnschedDragStart(event,${mIdx})">${esc(m.name)} (${m.durationDays}d)</div>`;
+            });
+            unschedWrap.innerHTML = h;
+        } else {
+            unschedWrap.innerHTML = '';
+        }
+
+        // Make rows droppable
+        container.addEventListener('dragover', e => e.preventDefault());
+        container.addEventListener('drop', e => {
+            e.preventDefault();
+            const mIdx = parseInt(e.dataTransfer.getData('text/plain'));
+            if (isNaN(mIdx)) return;
+            const rect = container.getBoundingClientRect();
+            const x = e.clientX - rect.left + container.scrollLeft - LABEL_W;
+            const day = Math.max(0, Math.round(x / DAY_PX));
+            measures[mIdx].startDay = day;
+            save();
+            renderGantt();
+        });
+    };
+
+    // Drag start for unscheduled
+    window.ganttUnschedDragStart = function(e, mIdx) {
+        e.dataTransfer.setData('text/plain', mIdx.toString());
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    // Pointer-based drag for bars
+    window.ganttPointerDown = function(e, mIdx) {
+        const bar = e.currentTarget;
+        const isResize = e.target.dataset.resize === '1';
+        bar.setPointerCapture(e.pointerId);
+        dragState = {
+            mIdx: mIdx,
+            startX: e.clientX,
+            origStartDay: measures[mIdx].startDay || 0,
+            origDuration: measures[mIdx].durationDays,
+            isResize: isResize,
+            bar: bar
+        };
+        e.preventDefault();
+    };
+
+    window.ganttPointerMove = function(e) {
+        if (!dragState) return;
+        const dx = e.clientX - dragState.startX;
+        const deltaDays = Math.round(dx / DAY_PX);
+        if (dragState.isResize) {
+            const newDur = Math.max(1, dragState.origDuration + deltaDays);
+            measures[dragState.mIdx].durationDays = newDur;
+            dragState.bar.style.width = newDur * DAY_PX + 'px';
+        } else {
+            const newStart = Math.max(0, dragState.origStartDay + deltaDays);
+            measures[dragState.mIdx].startDay = newStart;
+            dragState.bar.style.left = newStart * DAY_PX + 'px';
+        }
+    };
+
+    window.ganttPointerUp = function(e) {
+        if (!dragState) return;
+        dragState.bar.releasePointerCapture(e.pointerId);
+        dragState = null;
+        save();
+        renderGantt();
+    };
+
+    // Tooltip
+    window.showGanttTooltip = function(e, mIdx) {
+        if (dragState) return;
+        const m = measures[mIdx];
+        if (!tooltipEl) {
+            tooltipEl = document.createElement('div');
+            tooltipEl.className = 'gantt-tooltip';
+            document.body.appendChild(tooltipEl);
+        }
+        const fmt = n => new Intl.NumberFormat('de-DE',{maximumFractionDigits:0}).format(Math.round(n));
+        const startDate = new Date(ganttDateInput.value + 'T00:00:00');
+        const mStart = new Date(startDate);
+        mStart.setDate(mStart.getDate() + (m.startDay||0));
+        const mEnd = new Date(mStart);
+        mEnd.setDate(mEnd.getDate() + m.durationDays);
+        const dateFmt = d => d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+
+        tooltipEl.innerHTML = `<strong>${esc(m.name)}</strong><br>
+            ${dateFmt(mStart)} — ${dateFmt(mEnd)}<br>
+            Geplant: ${fmt(m.plannedCost)} € | Ist: ${m.actualCost !== null && m.actualCost !== undefined ? fmt(m.actualCost) + ' €' : '-'}<br>
+            Ausführer: ${esc(m.executor)}<br>
+            Zusage: ${m.confirmed ? 'Ja' : 'Nein'}`;
+        tooltipEl.style.display = 'block';
+        tooltipEl.style.left = e.clientX + 12 + 'px';
+        tooltipEl.style.top = e.clientY - 10 + 'px';
+
+        e.currentTarget.addEventListener('mousemove', moveTooltip);
+    };
+
+    function moveTooltip(e) {
+        if (tooltipEl) {
+            tooltipEl.style.left = e.clientX + 12 + 'px';
+            tooltipEl.style.top = e.clientY - 10 + 'px';
+        }
+    }
+
+    window.hideGanttTooltip = function() {
+        if (tooltipEl) tooltipEl.style.display = 'none';
+    };
+
+    // Init
+    renderTable();
+    renderKPIs();
+    renderColorSwatches();
+})();
 </script>
 </div><!-- /appContent -->
 </body>
