@@ -1987,7 +1987,7 @@ run();
 
     // Init gantt start date
     const ganttDateInput = document.getElementById('ganttStartDate');
-    ganttDateInput.value = localStorage.getItem(GANTT_START_KEY) || new Date().toISOString().slice(0,10);
+    ganttDateInput.value = localStorage.getItem(GANTT_START_KEY) || '2026-09-01';
     ganttDateInput.addEventListener('change', () => {
         localStorage.setItem(GANTT_START_KEY, ganttDateInput.value);
     });
@@ -2205,7 +2205,7 @@ run();
         scheduled.forEach((m, si) => {
             const mIdx = measures.indexOf(m);
             rowsHtml += `<div style="display:flex;height:${ROW_H}px;">`;
-            rowsHtml += `<div class="gantt-label" style="width:${LABEL_W}px;min-width:${LABEL_W}px;height:${ROW_H}px;"><div style="width:10px;height:10px;border-radius:3px;background:${m.color};flex-shrink:0;"></div>${esc(m.name)}</div>`;
+            rowsHtml += `<div class="gantt-label" style="width:${LABEL_W}px;min-width:${LABEL_W}px;height:${ROW_H}px;cursor:pointer;" onclick="editMeasure(${mIdx})" title="Klicken zum Bearbeiten"><div style="width:10px;height:10px;border-radius:3px;background:${m.color};flex-shrink:0;"></div>${esc(m.name)}</div>`;
             rowsHtml += `<div class="gantt-row-bg" style="flex:1;height:${ROW_H}px;position:relative;" data-midx="${mIdx}">`;
 
             // Day backgrounds
@@ -2228,10 +2228,11 @@ run();
             rowsHtml += `<div class="gantt-bar" style="left:${barLeft}px;width:${barW}px;background:${m.color};" data-midx="${mIdx}"
                 onpointerdown="ganttPointerDown(event,${mIdx})"
                 onpointermove="ganttPointerMove(event)"
-                onpointerup="ganttPointerUp(event)"
+                onpointerup="ganttPointerUp(event,${mIdx})"
+                ondblclick="editMeasure(${mIdx})"
                 onmouseenter="showGanttTooltip(event,${mIdx})"
                 onmouseleave="hideGanttTooltip()">
-                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${esc(m.name)}</span>
+                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;pointer-events:none;">${esc(m.name)}</span>
                 <div class="gantt-bar-resize" data-resize="1"></div>
             </div>`;
 
@@ -2257,7 +2258,8 @@ run();
             unscheduled.forEach(m => {
                 const mIdx = measures.indexOf(m);
                 h += `<div class="gantt-unscheduled-item" style="background:${m.color};" draggable="true"
-                    ondragstart="ganttUnschedDragStart(event,${mIdx})">${esc(m.name)} (${m.durationDays}d)</div>`;
+                    ondragstart="ganttUnschedDragStart(event,${mIdx})"
+                    onclick="editMeasure(${mIdx})" title="Klicken zum Bearbeiten">${esc(m.name)} (${m.durationDays}d)</div>`;
             });
             unschedWrap.innerHTML = h;
         } else {
@@ -2316,12 +2318,18 @@ run();
         }
     };
 
-    window.ganttPointerUp = function(e) {
+    window.ganttPointerUp = function(e, mIdx) {
         if (!dragState) return;
+        const dx = Math.abs(e.clientX - dragState.startX);
         dragState.bar.releasePointerCapture(e.pointerId);
+        const wasDrag = dx > 3;
         dragState = null;
-        save();
-        renderGantt();
+        if (wasDrag) {
+            save();
+            renderGantt();
+        } else {
+            editMeasure(mIdx);
+        }
     };
 
     // Tooltip
