@@ -129,6 +129,12 @@
         .gantt-unscheduled-item { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:8px; font-size:12px; font-weight:500; color:#fff; cursor:grab; margin:4px; user-select:none; }
         .gantt-unscheduled-item:active { cursor:grabbing; opacity:.8; }
         .gantt-tooltip { position:fixed; background:#333; color:#fff; padding:8px 12px; border-radius:8px; font-size:12px; pointer-events:none; z-index:1000; max-width:260px; box-shadow:0 4px 12px rgba(0,0,0,.3); }
+        .gantt-dep-line { position:absolute; pointer-events:none; z-index:6; }
+        .um-dep-tag { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:6px; font-size:12px; font-weight:500; color:#fff; cursor:pointer; }
+        .um-dep-tag:hover { opacity:.85; }
+        .um-dep-toggle { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:6px; font-size:12px; border:1px dashed var(--border); cursor:pointer; background:#f8f8f8; color:#555; transition:all .15s; }
+        .um-dep-toggle:hover { border-color:var(--red); color:var(--red); }
+        .um-dep-toggle.active { background:var(--red); color:#fff; border-color:var(--red); }
     </style>
 </head>
 <body>
@@ -926,6 +932,7 @@ async function checkAuth(){
 <div class="tabs" id="umbauTabs">
     <button class="tab-btn active" data-tab="tab-massnahmen">Maßnahmen</button>
     <button class="tab-btn" data-tab="tab-zeitplan">Zeitplan (Gantt)</button>
+    <button class="tab-btn" data-tab="tab-kostenrechner">Kostenrechner</button>
 </div>
 
 <!-- Tab 1: Maßnahmen CRUD -->
@@ -944,7 +951,8 @@ async function checkAuth(){
                         <th>Ausführender</th>
                         <th class="r">Geplant</th>
                         <th class="r">Ist-Kosten</th>
-                        <th class="r">Dauer</th>
+                        <th>Zeitraum</th>
+                        <th>Abhängig von</th>
                         <th>Zusage</th>
                         <th style="width:80px;"></th>
                     </tr>
@@ -974,23 +982,31 @@ async function checkAuth(){
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                     <div class="um-field">
-                        <label>Geplante Kosten (EUR) *</label>
-                        <input type="number" id="mf_planned" required min="0" step="100" placeholder="15000">
+                        <label>Geplante Kosten (EUR)</label>
+                        <input type="number" id="mf_planned" min="0" step="100" placeholder="15000">
                     </div>
                     <div class="um-field">
                         <label>Ist-Kosten (EUR)</label>
                         <input type="number" id="mf_actual" min="0" step="100" placeholder="noch unbekannt">
                     </div>
                 </div>
+                <div class="um-field">
+                    <label>Ausführender *</label>
+                    <input type="text" id="mf_executor" required placeholder="Firma / Eigenleistung">
+                </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                     <div class="um-field">
-                        <label>Ausführender *</label>
-                        <input type="text" id="mf_executor" required placeholder="Firma / Eigenleistung">
+                        <label>Startdatum</label>
+                        <input type="date" id="mf_startDate">
                     </div>
                     <div class="um-field">
-                        <label>Dauer (Tage) *</label>
-                        <input type="number" id="mf_duration" required min="1" value="7" placeholder="7">
+                        <label>Enddatum</label>
+                        <input type="date" id="mf_endDate">
                     </div>
+                </div>
+                <div class="um-field">
+                    <label>Abhängig von (erst starten nach Abschluss von)</label>
+                    <div id="mf_depends" style="display:flex;flex-wrap:wrap;gap:6px;min-height:32px;padding:4px 0;"></div>
                 </div>
                 <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
                     <div class="um-field" style="margin-bottom:0;flex:1;">
@@ -1010,6 +1026,16 @@ async function checkAuth(){
                 </div>
             </form>
         </div>
+    </div>
+</div>
+
+<!-- Tab 3: Kostenrechner -->
+<div id="tab-kostenrechner" class="tab-panel">
+    <div class="card">
+        <h2>Kostenübersicht Umbaumaßnahmen</h2>
+        <div id="kostenSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px;"></div>
+        <div id="kostenChart" style="margin-bottom:20px;"></div>
+        <div id="kostenTable"></div>
     </div>
 </div>
 
@@ -1982,8 +2008,32 @@ run();
     const GANTT_START_KEY = 'umbau_gantt_start';
     let measures = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
     let selectedColor = COLORS[0];
+    let selectedDeps = [];
     let dragState = null;
     let tooltipEl = null;
+
+    // Migrate old data format (startDay/durationDays -> startDate/endDate)
+    measures.forEach(m => {
+        if (m.durationDays !== undefined && m.startDate === undefined) {
+            const ganttStart = localStorage.getItem(GANTT_START_KEY) || '2026-09-01';
+            if (m.startDay !== null && m.startDay !== undefined) {
+                const s = new Date(ganttStart + 'T00:00:00');
+                s.setDate(s.getDate() + m.startDay);
+                m.startDate = s.toISOString().slice(0,10);
+                const e = new Date(s);
+                e.setDate(e.getDate() + m.durationDays);
+                m.endDate = e.toISOString().slice(0,10);
+            } else {
+                m.startDate = null;
+                m.endDate = null;
+            }
+            delete m.startDay;
+            delete m.durationDays;
+        }
+        if (!m.dependsOn) m.dependsOn = [];
+        if (!m.id) m.id = crypto.randomUUID();
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(measures));
 
     // Init gantt start date
     const ganttDateInput = document.getElementById('ganttStartDate');
@@ -1992,15 +2042,55 @@ run();
         localStorage.setItem(GANTT_START_KEY, ganttDateInput.value);
     });
 
+    // === HELPERS ===
+    const esc = s => { const d = document.createElement('div'); d.textContent = s||''; return d.innerHTML; };
+    const fmt = n => new Intl.NumberFormat('de-DE',{maximumFractionDigits:0}).format(Math.round(n));
+    const dateFmt = d => d ? new Date(d+'T00:00:00').toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'}) : '-';
+    const daysBetween = (a,b) => Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00'))/(1000*60*60*24));
+    const addDays = (dateStr, n) => { const d = new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+    const findById = id => measures.find(m => m.id === id);
+    const findIdxById = id => measures.findIndex(m => m.id === id);
+
+    // === DEPENDENCY CASCADE ===
+    function cascadeDependents(movedIdx) {
+        const moved = measures[movedIdx];
+        if (!moved.endDate) return;
+        measures.forEach((m, i) => {
+            if (i === movedIdx || !m.dependsOn || !m.dependsOn.length) return;
+            if (!m.dependsOn.includes(moved.id)) return;
+            // Find latest end among all dependencies
+            let latestEnd = null;
+            for (const depId of m.dependsOn) {
+                const dep = findById(depId);
+                if (dep && dep.endDate) {
+                    if (!latestEnd || dep.endDate > latestEnd) latestEnd = dep.endDate;
+                }
+            }
+            if (!latestEnd) return;
+            // If current start is before the latest dependency end, shift forward
+            if (m.startDate && m.startDate < latestEnd) {
+                const dur = m.endDate ? daysBetween(m.startDate, m.endDate) : 7;
+                m.startDate = latestEnd;
+                m.endDate = addDays(m.startDate, dur);
+                cascadeDependents(i); // recursive cascade
+            } else if (!m.startDate) {
+                m.startDate = latestEnd;
+                m.endDate = addDays(m.startDate, 7);
+                cascadeDependents(i);
+            }
+        });
+    }
+
     // Tab switching for umbau tabs
     document.getElementById('umbauTabs').addEventListener('click', e => {
         const btn = e.target.closest('.tab-btn');
         if (!btn) return;
         document.querySelectorAll('#umbauTabs .tab-btn').forEach(b => b.classList.remove('active'));
-        ['tab-massnahmen','tab-zeitplan'].forEach(id => document.getElementById(id).classList.remove('active'));
+        ['tab-massnahmen','tab-zeitplan','tab-kostenrechner'].forEach(id => document.getElementById(id).classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(btn.dataset.tab).classList.add('active');
         if (btn.dataset.tab === 'tab-zeitplan') renderGantt();
+        if (btn.dataset.tab === 'tab-kostenrechner') renderKostenrechner();
     });
 
     // === PERSISTENCE ===
@@ -2012,7 +2102,6 @@ run();
 
     // === KPIs ===
     function renderKPIs() {
-        const fmt = n => new Intl.NumberFormat('de-DE',{maximumFractionDigits:0}).format(Math.round(n));
         document.getElementById('um_count').textContent = measures.length;
         const confirmed = measures.filter(m => m.confirmed).length;
         document.getElementById('um_confirmed').textContent = confirmed;
@@ -2024,12 +2113,13 @@ run();
         const diff = actual - planned;
         document.getElementById('um_diff_sub').textContent = actual > 0 ? (diff >= 0 ? '+' : '') + fmt(diff) + ' € vs. Planung' : '-';
 
-        const scheduled = measures.filter(m => m.startDay !== null && m.startDay !== undefined);
+        const scheduled = measures.filter(m => m.startDate && m.endDate);
         if (scheduled.length > 0) {
-            const minStart = Math.min(...scheduled.map(m => m.startDay));
-            const maxEnd = Math.max(...scheduled.map(m => m.startDay + m.durationDays));
-            document.getElementById('um_duration').textContent = (maxEnd - minStart) + ' Tage';
-            document.getElementById('um_duration_sub').textContent = `Tag ${minStart+1} bis Tag ${maxEnd}`;
+            const starts = scheduled.map(m => m.startDate).sort();
+            const ends = scheduled.map(m => m.endDate).sort();
+            const totalDays = daysBetween(starts[0], ends[ends.length-1]);
+            document.getElementById('um_duration').textContent = totalDays + ' Tage';
+            document.getElementById('um_duration_sub').textContent = dateFmt(starts[0]) + ' – ' + dateFmt(ends[ends.length-1]);
         } else {
             document.getElementById('um_duration').textContent = '-';
             document.getElementById('um_duration_sub').textContent = 'Noch keine eingeplant';
@@ -2040,53 +2130,76 @@ run();
     function renderTable() {
         const body = document.getElementById('measuresBody');
         const empty = document.getElementById('measuresEmpty');
-        const fmt = n => new Intl.NumberFormat('de-DE',{maximumFractionDigits:0}).format(Math.round(n));
-        if (measures.length === 0) {
-            body.innerHTML = '';
-            empty.style.display = 'block';
-            return;
-        }
+        if (measures.length === 0) { body.innerHTML = ''; empty.style.display = 'block'; return; }
         empty.style.display = 'none';
-        body.innerHTML = measures.map((m, i) => `
-            <tr>
+        body.innerHTML = measures.map((m, i) => {
+            const dur = (m.startDate && m.endDate) ? daysBetween(m.startDate, m.endDate) : null;
+            const depNames = (m.dependsOn||[]).map(id => { const d = findById(id); return d ? d.name : null; }).filter(Boolean);
+            return `<tr>
                 <td><div style="width:16px;height:16px;border-radius:4px;background:${m.color}"></div></td>
                 <td><strong>${esc(m.name)}</strong>${m.description ? '<br><span style="font-size:11px;color:var(--muted);">'+esc(m.description)+'</span>' : ''}</td>
                 <td>${esc(m.executor)}</td>
-                <td class="r">${fmt(m.plannedCost)} €</td>
+                <td class="r">${m.plannedCost ? fmt(m.plannedCost) + ' €' : '<span style="color:var(--muted);">-</span>'}</td>
                 <td class="r">${m.actualCost !== null && m.actualCost !== undefined && m.actualCost !== '' ? fmt(m.actualCost) + ' €' : '<span style="color:var(--muted);">-</span>'}</td>
-                <td class="r">${m.durationDays} Tag${m.durationDays !== 1 ? 'e' : ''}</td>
+                <td style="white-space:nowrap;font-size:11px;">${m.startDate ? dateFmt(m.startDate) + ' – ' + dateFmt(m.endDate) : '<span style="color:var(--muted);">nicht geplant</span>'}${dur !== null ? '<br><span style="color:var(--muted);">'+dur+' Tage</span>' : ''}</td>
+                <td style="font-size:11px;">${depNames.length ? depNames.map(n => '<span style="background:#eee;padding:1px 6px;border-radius:4px;margin:1px;">'+esc(n)+'</span>').join(' ') : '<span style="color:var(--muted);">-</span>'}</td>
                 <td><span class="um-badge ${m.confirmed ? 'um-badge-yes' : 'um-badge-no'}">${m.confirmed ? 'Ja' : 'Nein'}</span></td>
                 <td style="white-space:nowrap;">
                     <button onclick="editMeasure(${i})" style="background:none;border:none;cursor:pointer;font-size:14px;" title="Bearbeiten">✏️</button>
                     <button onclick="deleteMeasure(${i})" style="background:none;border:none;cursor:pointer;font-size:14px;" title="Löschen">🗑️</button>
                 </td>
-            </tr>
-        `).join('');
+            </tr>`;
+        }).join('');
     }
 
-    function esc(s) { const d = document.createElement('div'); d.textContent = s||''; return d.innerHTML; }
-
     // === FORM ===
+    function renderDepsSelector(currentIdx) {
+        const wrap = document.getElementById('mf_depends');
+        if (measures.length <= 1 && currentIdx === undefined) {
+            wrap.innerHTML = '<span style="font-size:12px;color:var(--muted);">Erst bei mehreren Maßnahmen verfügbar</span>';
+            return;
+        }
+        wrap.innerHTML = measures.map((m, i) => {
+            if (currentIdx !== undefined && i === currentIdx) return '';
+            const isSelected = selectedDeps.includes(m.id);
+            return `<div class="um-dep-toggle ${isSelected ? 'active' : ''}" onclick="toggleDep('${m.id}')" style="${isSelected ? 'background:'+m.color+';border-color:'+m.color+';' : ''}">
+                <div style="width:8px;height:8px;border-radius:2px;background:${isSelected ? '#fff' : m.color};"></div>
+                ${esc(m.name)}</div>`;
+        }).join('');
+    }
+
+    window.toggleDep = function(id) {
+        const i = selectedDeps.indexOf(id);
+        if (i >= 0) selectedDeps.splice(i, 1);
+        else selectedDeps.push(id);
+        const currentIdx = document.getElementById('mf_id').value;
+        renderDepsSelector(currentIdx !== '' ? parseInt(currentIdx) : undefined);
+    };
+
     window.openMeasureForm = function(idx) {
         const form = document.getElementById('measureForm');
         form.reset();
         document.getElementById('mf_id').value = '';
         document.getElementById('measureFormTitle').textContent = 'Neue Maßnahme';
         selectedColor = COLORS[measures.length % COLORS.length];
+        selectedDeps = [];
         if (idx !== undefined) {
             const m = measures[idx];
             document.getElementById('mf_id').value = idx;
             document.getElementById('mf_name').value = m.name;
             document.getElementById('mf_desc').value = m.description || '';
-            document.getElementById('mf_planned').value = m.plannedCost;
+            document.getElementById('mf_planned').value = m.plannedCost || '';
             document.getElementById('mf_actual').value = m.actualCost !== null && m.actualCost !== undefined ? m.actualCost : '';
             document.getElementById('mf_executor').value = m.executor;
-            document.getElementById('mf_duration').value = m.durationDays;
+            document.getElementById('mf_startDate').value = m.startDate || '';
+            document.getElementById('mf_endDate').value = m.endDate || '';
             document.getElementById('mf_confirmed').checked = m.confirmed;
             selectedColor = m.color;
+            selectedDeps = [...(m.dependsOn || [])];
             document.getElementById('measureFormTitle').textContent = 'Maßnahme bearbeiten';
         }
         renderColorSwatches();
+        renderDepsSelector(idx);
         document.getElementById('measureOverlay').classList.add('open');
     };
 
@@ -2116,22 +2229,27 @@ run();
         e.preventDefault();
         const idVal = document.getElementById('mf_id').value;
         const actualVal = document.getElementById('mf_actual').value;
+        const plannedVal = document.getElementById('mf_planned').value;
+        const startVal = document.getElementById('mf_startDate').value;
+        const endVal = document.getElementById('mf_endDate').value;
         const data = {
+            id: idVal !== '' ? measures[parseInt(idVal)].id : crypto.randomUUID(),
             name: document.getElementById('mf_name').value.trim(),
             description: document.getElementById('mf_desc').value.trim(),
-            plannedCost: parseFloat(document.getElementById('mf_planned').value) || 0,
+            plannedCost: plannedVal !== '' ? parseFloat(plannedVal) : 0,
             actualCost: actualVal !== '' ? parseFloat(actualVal) : null,
             executor: document.getElementById('mf_executor').value.trim(),
-            durationDays: parseInt(document.getElementById('mf_duration').value) || 7,
+            startDate: startVal || null,
+            endDate: endVal || null,
             confirmed: document.getElementById('mf_confirmed').checked,
             color: selectedColor,
+            dependsOn: [...selectedDeps],
         };
         if (idVal !== '') {
             const idx = parseInt(idVal);
-            data.startDay = measures[idx].startDay;
             measures[idx] = data;
+            cascadeDependents(idx);
         } else {
-            data.startDay = null;
             measures.push(data);
         }
         save();
@@ -2140,23 +2258,128 @@ run();
 
     window.deleteMeasure = function(idx) {
         if (!confirm('Maßnahme "' + measures[idx].name + '" wirklich löschen?')) return;
+        const removedId = measures[idx].id;
         measures.splice(idx, 1);
+        // Clean up dependency references
+        measures.forEach(m => {
+            if (m.dependsOn) m.dependsOn = m.dependsOn.filter(id => id !== removedId);
+        });
         save();
     };
+
+    // === KOSTENRECHNER ===
+    function renderKostenrechner() {
+        const planned = measures.reduce((s,m) => s + (m.plannedCost||0), 0);
+        const actual = measures.reduce((s,m) => s + (m.actualCost||0), 0);
+        const withActual = measures.filter(m => m.actualCost !== null && m.actualCost !== undefined);
+        const withoutActual = measures.filter(m => m.actualCost === null || m.actualCost === undefined);
+        const projectedTotal = withActual.reduce((s,m) => s + m.actualCost, 0) + withoutActual.reduce((s,m) => s + (m.plannedCost||0), 0);
+        const diff = actual - planned;
+        const confirmedPlanned = measures.filter(m => m.confirmed).reduce((s,m) => s + (m.plannedCost||0), 0);
+
+        // Summary cards
+        document.getElementById('kostenSummary').innerHTML = `
+            <div style="background:#fff8e1;border-radius:10px;padding:16px;border:1px solid #ffe082;text-align:center;">
+                <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Geplante Gesamtkosten</div>
+                <div style="font-size:28px;font-weight:800;color:var(--orange);">${fmt(planned)} €</div>
+                <div style="font-size:11px;color:var(--muted);">${measures.length} Maßnahmen</div>
+            </div>
+            <div style="background:${actual > planned && actual > 0 ? '#fce4ec' : '#e8f5e9'};border-radius:10px;padding:16px;border:1px solid ${actual > planned && actual > 0 ? '#ef9a9a' : '#a5d6a7'};text-align:center;">
+                <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Ist-Kosten bisher</div>
+                <div style="font-size:28px;font-weight:800;color:${actual > planned && actual > 0 ? 'var(--red)' : 'var(--green)'};">${fmt(actual)} €</div>
+                <div style="font-size:11px;color:var(--muted);">${withActual.length} von ${measures.length} erfasst</div>
+            </div>
+            <div style="background:#e3f2fd;border-radius:10px;padding:16px;border:1px solid #90caf9;text-align:center;">
+                <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Hochrechnung gesamt</div>
+                <div style="font-size:28px;font-weight:800;color:var(--blue);">${fmt(projectedTotal)} €</div>
+                <div style="font-size:11px;color:var(--muted);">Ist + Planung (offene)</div>
+            </div>
+            <div style="background:#f3e5f5;border-radius:10px;padding:16px;border:1px solid #ce93d8;text-align:center;">
+                <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">Bestätigte Kosten</div>
+                <div style="font-size:28px;font-weight:800;color:var(--purple);">${fmt(confirmedPlanned)} €</div>
+                <div style="font-size:11px;color:var(--muted);">mit Zusage</div>
+            </div>
+        `;
+
+        // Cost bar chart
+        const maxCost = Math.max(...measures.map(m => Math.max(m.plannedCost||0, m.actualCost||0)), 1);
+        let chartHtml = '<div style="margin-bottom:8px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;">Kosten pro Maßnahme</div>';
+        if (measures.length === 0) {
+            chartHtml += '<div style="text-align:center;color:var(--muted);padding:20px;">Keine Maßnahmen vorhanden.</div>';
+        } else {
+            measures.forEach(m => {
+                const pW = Math.max(1, (m.plannedCost||0)/maxCost*100);
+                const aW = m.actualCost ? Math.max(1, m.actualCost/maxCost*100) : 0;
+                const overBudget = m.actualCost && m.actualCost > (m.plannedCost||0);
+                chartHtml += `<div style="margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+                        <span style="font-weight:600;">${esc(m.name)}</span>
+                        <span style="color:var(--muted);">${m.plannedCost ? fmt(m.plannedCost)+' €' : '-'}${m.actualCost ? ' / <strong style="color:'+(overBudget?'var(--red)':'var(--green)')+'">'+fmt(m.actualCost)+' €</strong>' : ''}</span>
+                    </div>
+                    <div style="background:#f0f0f0;border-radius:4px;height:20px;position:relative;overflow:hidden;">
+                        <div style="position:absolute;height:100%;background:${m.color};opacity:.3;border-radius:4px;width:${pW}%;"></div>
+                        ${aW > 0 ? `<div style="position:absolute;height:100%;background:${overBudget?'var(--red)':m.color};border-radius:4px;width:${aW}%;"></div>` : ''}
+                    </div>
+                </div>`;
+            });
+            chartHtml += `<div style="display:flex;gap:16px;font-size:11px;color:var(--muted);margin-top:8px;">
+                <span><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#ccc;vertical-align:middle;margin-right:4px;opacity:.5;"></span>Geplant</span>
+                <span><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#666;vertical-align:middle;margin-right:4px;"></span>Ist-Kosten</span>
+                <span><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:var(--red);vertical-align:middle;margin-right:4px;"></span>Über Budget</span>
+            </div>`;
+        }
+        document.getElementById('kostenChart').innerHTML = chartHtml;
+
+        // Cost table
+        let tableHtml = `<div style="margin-top:16px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Detailübersicht</div>`;
+        tableHtml += `<div class="scroll-table"><table><thead><tr>
+            <th></th><th>Maßnahme</th><th>Ausführer</th><th class="r">Geplant</th><th class="r">Ist</th><th class="r">Differenz</th><th>Status</th>
+        </tr></thead><tbody>`;
+        measures.forEach(m => {
+            const d = (m.actualCost !== null && m.actualCost !== undefined) ? m.actualCost - (m.plannedCost||0) : null;
+            tableHtml += `<tr>
+                <td><div style="width:12px;height:12px;border-radius:3px;background:${m.color}"></div></td>
+                <td>${esc(m.name)}</td>
+                <td>${esc(m.executor)}</td>
+                <td class="r">${m.plannedCost ? fmt(m.plannedCost)+' €' : '-'}</td>
+                <td class="r">${m.actualCost !== null && m.actualCost !== undefined ? fmt(m.actualCost)+' €' : '-'}</td>
+                <td class="r" style="color:${d !== null ? (d > 0 ? 'var(--red)' : 'var(--green)') : 'var(--muted)'};">${d !== null ? (d >= 0 ? '+' : '')+fmt(d)+' €' : '-'}</td>
+                <td><span class="um-badge ${m.confirmed ? 'um-badge-yes' : 'um-badge-no'}">${m.confirmed ? 'Bestätigt' : 'Offen'}</span></td>
+            </tr>`;
+        });
+        // Totals row
+        const totalPlanned = measures.reduce((s,m)=>s+(m.plannedCost||0),0);
+        const totalActual = measures.reduce((s,m)=>s+(m.actualCost||0),0);
+        const totalDiff = totalActual - totalPlanned;
+        tableHtml += `<tr style="font-weight:700;border-top:2px solid #333;">
+            <td></td><td>Gesamt</td><td></td>
+            <td class="r">${fmt(totalPlanned)} €</td>
+            <td class="r">${totalActual > 0 ? fmt(totalActual)+' €' : '-'}</td>
+            <td class="r" style="color:${totalActual > 0 ? (totalDiff > 0 ? 'var(--red)' : 'var(--green)') : 'var(--muted)'};">${totalActual > 0 ? (totalDiff >= 0 ? '+' : '')+fmt(totalDiff)+' €' : '-'}</td>
+            <td></td>
+        </tr>`;
+        tableHtml += '</tbody></table></div>';
+        document.getElementById('kostenTable').innerHTML = tableHtml;
+    }
 
     // === GANTT ===
     const DAY_PX = 36;
     const ROW_H = 40;
     const LABEL_W = 180;
 
+    function dateToDayOffset(dateStr, ganttStart) {
+        if (!dateStr) return null;
+        return daysBetween(ganttStart, dateStr);
+    }
+
     window.renderGantt = function() {
         const container = document.getElementById('ganttContainer');
-        const startDate = new Date(ganttDateInput.value + 'T00:00:00');
+        const ganttStart = ganttDateInput.value;
+        const startDate = new Date(ganttStart + 'T00:00:00');
         const totalWeeks = parseInt(document.getElementById('ganttWeeks').value);
         const totalDays = totalWeeks * 7;
-        const gridW = LABEL_W + totalDays * DAY_PX;
-        const scheduled = measures.filter(m => m.startDay !== null && m.startDay !== undefined);
-        const unscheduled = measures.filter(m => m.startDay === null || m.startDay === undefined);
+        const scheduled = measures.filter(m => m.startDate && m.endDate);
+        const unscheduled = measures.filter(m => !m.startDate || !m.endDate);
 
         if (measures.length === 0) {
             container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:14px;">Lege zuerst Maßnahmen an, um sie hier einzuplanen.</div>';
@@ -2167,64 +2390,47 @@ run();
         // Build month header
         let monthsHtml = `<div style="display:flex;position:sticky;top:0;z-index:20;">`;
         monthsHtml += `<div style="width:${LABEL_W}px;min-width:${LABEL_W}px;background:#eee;border-right:2px solid var(--border);border-bottom:1px solid var(--border);padding:3px 10px;font-size:11px;font-weight:600;">Maßnahme</div>`;
-        let curMonth = -1;
-        let monthSpans = [];
+        let curMonth = -1, monthSpans = [];
         for (let d = 0; d < totalDays; d++) {
-            const date = new Date(startDate);
-            date.setDate(date.getDate() + d);
+            const date = new Date(startDate); date.setDate(date.getDate() + d);
             const m = date.getMonth();
-            if (m !== curMonth) {
-                monthSpans.push({ month: date.toLocaleDateString('de-DE',{month:'long',year:'numeric'}), days: 1 });
-                curMonth = m;
-            } else {
-                monthSpans[monthSpans.length-1].days++;
-            }
+            if (m !== curMonth) { monthSpans.push({ month: date.toLocaleDateString('de-DE',{month:'long',year:'numeric'}), days: 1 }); curMonth = m; }
+            else monthSpans[monthSpans.length-1].days++;
         }
-        for (const ms of monthSpans) {
-            monthsHtml += `<div class="gantt-month" style="width:${ms.days * DAY_PX}px;min-width:${ms.days * DAY_PX}px;">${ms.month}</div>`;
-        }
+        for (const ms of monthSpans) monthsHtml += `<div class="gantt-month" style="width:${ms.days*DAY_PX}px;min-width:${ms.days*DAY_PX}px;">${ms.month}</div>`;
         monthsHtml += `</div>`;
 
-        // Week/day header
+        // Day header
         let headerHtml = `<div style="display:flex;position:sticky;top:26px;z-index:19;">`;
         headerHtml += `<div style="width:${LABEL_W}px;min-width:${LABEL_W}px;background:#f8f8f8;border-right:2px solid var(--border);border-bottom:2px solid var(--border);"></div>`;
         for (let d = 0; d < totalDays; d++) {
-            const date = new Date(startDate);
-            date.setDate(date.getDate() + d);
-            const isMonday = date.getDay() === 1;
-            const isSunday = date.getDay() === 0;
-            const isSaturday = date.getDay() === 6;
-            const bg = (isSaturday || isSunday) ? '#f0f0f0' : '#f8f8f8';
-            const borderL = isMonday ? 'border-left:1px solid #ccc;' : '';
-            headerHtml += `<div class="gantt-header" style="width:${DAY_PX}px;min-width:${DAY_PX}px;background:${bg};${borderL}">${date.getDate()}</div>`;
+            const date = new Date(startDate); date.setDate(date.getDate() + d);
+            const isSat = date.getDay()===6, isSun = date.getDay()===0, isMon = date.getDay()===1;
+            const bg = (isSat||isSun) ? '#f0f0f0' : '#f8f8f8';
+            headerHtml += `<div class="gantt-header" style="width:${DAY_PX}px;min-width:${DAY_PX}px;background:${bg};${isMon?'border-left:1px solid #ccc;':''}">${date.getDate()}</div>`;
         }
         headerHtml += `</div>`;
 
         // Rows
-        let rowsHtml = `<div style="position:relative;">`;
+        let rowsHtml = `<div style="position:relative;" id="ganttRowsWrap">`;
         scheduled.forEach((m, si) => {
             const mIdx = measures.indexOf(m);
-            rowsHtml += `<div style="display:flex;height:${ROW_H}px;">`;
-            rowsHtml += `<div class="gantt-label" style="width:${LABEL_W}px;min-width:${LABEL_W}px;height:${ROW_H}px;cursor:pointer;" onclick="editMeasure(${mIdx})" title="Klicken zum Bearbeiten"><div style="width:10px;height:10px;border-radius:3px;background:${m.color};flex-shrink:0;"></div>${esc(m.name)}</div>`;
+            const startOff = dateToDayOffset(m.startDate, ganttStart);
+            const dur = daysBetween(m.startDate, m.endDate);
+            rowsHtml += `<div style="display:flex;height:${ROW_H}px;" data-row="${si}">`;
+            // Dependency indicator
+            const depIndicator = (m.dependsOn && m.dependsOn.length) ? '<span style="font-size:9px;color:var(--muted);" title="Hat Abhängigkeiten">🔗</span>' : '';
+            rowsHtml += `<div class="gantt-label" style="width:${LABEL_W}px;min-width:${LABEL_W}px;height:${ROW_H}px;cursor:pointer;" onclick="editMeasure(${mIdx})" title="Klicken zum Bearbeiten"><div style="width:10px;height:10px;border-radius:3px;background:${m.color};flex-shrink:0;"></div>${esc(m.name)} ${depIndicator}</div>`;
             rowsHtml += `<div class="gantt-row-bg" style="flex:1;height:${ROW_H}px;position:relative;" data-midx="${mIdx}">`;
 
-            // Day backgrounds
             for (let d = 0; d < totalDays; d++) {
-                const date = new Date(startDate);
-                date.setDate(date.getDate() + d);
-                const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                const isMonday = date.getDay() === 1;
-                if (isWeekend) {
-                    rowsHtml += `<div style="position:absolute;left:${d*DAY_PX}px;top:0;width:${DAY_PX}px;height:100%;background:rgba(0,0,0,.03);pointer-events:none;"></div>`;
-                }
-                if (isMonday) {
-                    rowsHtml += `<div class="gantt-week-line" style="left:${d*DAY_PX}px;"></div>`;
-                }
+                const date = new Date(startDate); date.setDate(date.getDate() + d);
+                if (date.getDay()===0||date.getDay()===6) rowsHtml += `<div style="position:absolute;left:${d*DAY_PX}px;top:0;width:${DAY_PX}px;height:100%;background:rgba(0,0,0,.03);pointer-events:none;"></div>`;
+                if (date.getDay()===1) rowsHtml += `<div class="gantt-week-line" style="left:${d*DAY_PX}px;"></div>`;
             }
 
-            // Bar
-            const barLeft = (m.startDay||0) * DAY_PX;
-            const barW = m.durationDays * DAY_PX;
+            const barLeft = startOff * DAY_PX;
+            const barW = Math.max(1, dur) * DAY_PX;
             rowsHtml += `<div class="gantt-bar" style="left:${barLeft}px;width:${barW}px;background:${m.color};" data-midx="${mIdx}"
                 onpointerdown="ganttPointerDown(event,${mIdx})"
                 onpointermove="ganttPointerMove(event)"
@@ -2235,20 +2441,42 @@ run();
                 <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;pointer-events:none;">${esc(m.name)}</span>
                 <div class="gantt-bar-resize" data-resize="1"></div>
             </div>`;
-
             rowsHtml += `</div></div>`;
         });
 
-        // Today line
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        const todayOffset = Math.round((today - startDate) / (1000*60*60*24));
-        if (todayOffset >= 0 && todayOffset < totalDays) {
-            rowsHtml += `<div class="gantt-today" style="left:${LABEL_W + todayOffset * DAY_PX}px;"></div>`;
+        // Dependency arrows (SVG overlay)
+        let arrowsSvg = '';
+        scheduled.forEach((m, si) => {
+            if (!m.dependsOn || !m.dependsOn.length) return;
+            const mIdx = measures.indexOf(m);
+            const mStartOff = dateToDayOffset(m.startDate, ganttStart);
+            m.dependsOn.forEach(depId => {
+                const dep = findById(depId);
+                if (!dep || !dep.startDate || !dep.endDate) return;
+                const depSi = scheduled.indexOf(dep);
+                if (depSi < 0) return;
+                const depEndOff = dateToDayOffset(dep.endDate, ganttStart);
+                const x1 = depEndOff * DAY_PX;
+                const y1 = depSi * ROW_H + ROW_H/2;
+                const x2 = mStartOff * DAY_PX;
+                const y2 = si * ROW_H + ROW_H/2;
+                arrowsSvg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#999" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowhead)"/>`;
+            });
+        });
+        if (arrowsSvg) {
+            const svgH = scheduled.length * ROW_H;
+            const svgW = totalDays * DAY_PX;
+            rowsHtml += `<svg style="position:absolute;top:0;left:0;width:${svgW}px;height:${svgH}px;pointer-events:none;z-index:7;">
+                <defs><marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#999"/></marker></defs>
+                ${arrowsSvg}</svg>`;
         }
 
-        rowsHtml += `</div>`;
+        // Today line
+        const today = new Date(); today.setHours(0,0,0,0);
+        const todayOffset = Math.round((today - startDate)/(1000*60*60*24));
+        if (todayOffset >= 0 && todayOffset < totalDays) rowsHtml += `<div class="gantt-today" style="left:${LABEL_W + todayOffset*DAY_PX}px;"></div>`;
 
+        rowsHtml += `</div>`;
         container.innerHTML = monthsHtml + headerHtml + rowsHtml;
 
         // Unscheduled
@@ -2259,14 +2487,12 @@ run();
                 const mIdx = measures.indexOf(m);
                 h += `<div class="gantt-unscheduled-item" style="background:${m.color};" draggable="true"
                     ondragstart="ganttUnschedDragStart(event,${mIdx})"
-                    onclick="editMeasure(${mIdx})" title="Klicken zum Bearbeiten">${esc(m.name)} (${m.durationDays}d)</div>`;
+                    onclick="editMeasure(${mIdx})" title="Klicken zum Bearbeiten">${esc(m.name)}</div>`;
             });
             unschedWrap.innerHTML = h;
-        } else {
-            unschedWrap.innerHTML = '';
-        }
+        } else unschedWrap.innerHTML = '';
 
-        // Make rows droppable
+        // Droppable
         container.addEventListener('dragover', e => e.preventDefault());
         container.addEventListener('drop', e => {
             e.preventDefault();
@@ -2274,31 +2500,35 @@ run();
             if (isNaN(mIdx)) return;
             const rect = container.getBoundingClientRect();
             const x = e.clientX - rect.left + container.scrollLeft - LABEL_W;
-            const day = Math.max(0, Math.round(x / DAY_PX));
-            measures[mIdx].startDay = day;
+            const dayOff = Math.max(0, Math.round(x / DAY_PX));
+            const dropDate = addDays(ganttStart, dayOff);
+            measures[mIdx].startDate = dropDate;
+            measures[mIdx].endDate = addDays(dropDate, 7);
+            cascadeDependents(mIdx);
             save();
             renderGantt();
         });
     };
 
-    // Drag start for unscheduled
     window.ganttUnschedDragStart = function(e, mIdx) {
         e.dataTransfer.setData('text/plain', mIdx.toString());
         e.dataTransfer.effectAllowed = 'move';
     };
 
-    // Pointer-based drag for bars
+    // Pointer drag for bars
     window.ganttPointerDown = function(e, mIdx) {
         const bar = e.currentTarget;
         const isResize = e.target.dataset.resize === '1';
         bar.setPointerCapture(e.pointerId);
+        const m = measures[mIdx];
+        const ganttStart = ganttDateInput.value;
         dragState = {
-            mIdx: mIdx,
-            startX: e.clientX,
-            origStartDay: measures[mIdx].startDay || 0,
-            origDuration: measures[mIdx].durationDays,
-            isResize: isResize,
-            bar: bar
+            mIdx, startX: e.clientX,
+            origStartDate: m.startDate,
+            origEndDate: m.endDate,
+            origStartOff: dateToDayOffset(m.startDate, ganttStart),
+            origDur: daysBetween(m.startDate, m.endDate),
+            isResize, bar, ganttStart
         };
         e.preventDefault();
     };
@@ -2307,14 +2537,16 @@ run();
         if (!dragState) return;
         const dx = e.clientX - dragState.startX;
         const deltaDays = Math.round(dx / DAY_PX);
+        const m = measures[dragState.mIdx];
         if (dragState.isResize) {
-            const newDur = Math.max(1, dragState.origDuration + deltaDays);
-            measures[dragState.mIdx].durationDays = newDur;
+            const newDur = Math.max(1, dragState.origDur + deltaDays);
+            m.endDate = addDays(m.startDate, newDur);
             dragState.bar.style.width = newDur * DAY_PX + 'px';
         } else {
-            const newStart = Math.max(0, dragState.origStartDay + deltaDays);
-            measures[dragState.mIdx].startDay = newStart;
-            dragState.bar.style.left = newStart * DAY_PX + 'px';
+            const newOff = Math.max(0, dragState.origStartOff + deltaDays);
+            m.startDate = addDays(dragState.ganttStart, newOff);
+            m.endDate = addDays(m.startDate, dragState.origDur);
+            dragState.bar.style.left = newOff * DAY_PX + 'px';
         }
     };
 
@@ -2325,6 +2557,7 @@ run();
         const wasDrag = dx > 3;
         dragState = null;
         if (wasDrag) {
+            cascadeDependents(mIdx);
             save();
             renderGantt();
         } else {
@@ -2336,46 +2569,26 @@ run();
     window.showGanttTooltip = function(e, mIdx) {
         if (dragState) return;
         const m = measures[mIdx];
-        if (!tooltipEl) {
-            tooltipEl = document.createElement('div');
-            tooltipEl.className = 'gantt-tooltip';
-            document.body.appendChild(tooltipEl);
-        }
-        const fmt = n => new Intl.NumberFormat('de-DE',{maximumFractionDigits:0}).format(Math.round(n));
-        const startDate = new Date(ganttDateInput.value + 'T00:00:00');
-        const mStart = new Date(startDate);
-        mStart.setDate(mStart.getDate() + (m.startDay||0));
-        const mEnd = new Date(mStart);
-        mEnd.setDate(mEnd.getDate() + m.durationDays);
-        const dateFmt = d => d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
-
+        if (!tooltipEl) { tooltipEl = document.createElement('div'); tooltipEl.className = 'gantt-tooltip'; document.body.appendChild(tooltipEl); }
+        const dur = (m.startDate && m.endDate) ? daysBetween(m.startDate, m.endDate) : null;
+        const depNames = (m.dependsOn||[]).map(id => { const d = findById(id); return d ? d.name : null; }).filter(Boolean);
         tooltipEl.innerHTML = `<strong>${esc(m.name)}</strong><br>
-            ${dateFmt(mStart)} — ${dateFmt(mEnd)}<br>
-            Geplant: ${fmt(m.plannedCost)} € | Ist: ${m.actualCost !== null && m.actualCost !== undefined ? fmt(m.actualCost) + ' €' : '-'}<br>
+            ${dateFmt(m.startDate)} — ${dateFmt(m.endDate)}${dur !== null ? ' ('+dur+' Tage)' : ''}<br>
+            Geplant: ${m.plannedCost ? fmt(m.plannedCost)+' €' : '-'} | Ist: ${m.actualCost !== null && m.actualCost !== undefined ? fmt(m.actualCost)+' €' : '-'}<br>
             Ausführer: ${esc(m.executor)}<br>
-            Zusage: ${m.confirmed ? 'Ja' : 'Nein'}`;
+            Zusage: ${m.confirmed ? 'Ja' : 'Nein'}
+            ${depNames.length ? '<br>Abhängig von: '+depNames.join(', ') : ''}`;
         tooltipEl.style.display = 'block';
         tooltipEl.style.left = e.clientX + 12 + 'px';
         tooltipEl.style.top = e.clientY - 10 + 'px';
-
         e.currentTarget.addEventListener('mousemove', moveTooltip);
     };
-
-    function moveTooltip(e) {
-        if (tooltipEl) {
-            tooltipEl.style.left = e.clientX + 12 + 'px';
-            tooltipEl.style.top = e.clientY - 10 + 'px';
-        }
-    }
-
-    window.hideGanttTooltip = function() {
-        if (tooltipEl) tooltipEl.style.display = 'none';
-    };
+    function moveTooltip(e) { if (tooltipEl) { tooltipEl.style.left = e.clientX+12+'px'; tooltipEl.style.top = e.clientY-10+'px'; } }
+    window.hideGanttTooltip = function() { if (tooltipEl) tooltipEl.style.display = 'none'; };
 
     // Init
     renderTable();
     renderKPIs();
-    renderColorSwatches();
 })();
 </script>
 </div><!-- /appContent -->
