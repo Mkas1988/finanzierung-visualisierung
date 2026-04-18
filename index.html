@@ -135,6 +135,25 @@
         .um-dep-toggle { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:6px; font-size:12px; border:1px dashed var(--border); cursor:pointer; background:#f8f8f8; color:#555; transition:all .15s; }
         .um-dep-toggle:hover { border-color:var(--red); color:var(--red); }
         .um-dep-toggle.active { background:var(--red); color:#fff; border-color:var(--red); }
+
+        /* Subtask hierarchy */
+        .gantt-label-indent { padding-left:28px !important; }
+        .gantt-collapse-btn { background:none; border:none; cursor:pointer; font-size:11px; padding:0 2px; line-height:1; color:#666; flex-shrink:0; }
+        .gantt-collapse-btn:hover { color:#000; }
+        .gantt-subtask-bar { opacity:.85; height:22px !important; top:9px !important; border-radius:4px !important; }
+        .gantt-add-sub { background:none; border:none; cursor:pointer; font-size:11px; color:var(--muted); padding:0 2px; flex-shrink:0; opacity:0; transition:opacity .15s; }
+        .gantt-label:hover .gantt-add-sub { opacity:1; }
+        .gantt-add-sub:hover { color:var(--red); }
+        .table-subtask td { padding-left:32px !important; }
+        .table-subtask td:first-child { padding-left:8px !important; }
+        .table-parent > td:nth-child(2) { font-weight:700; }
+        .cat-badge { display:inline-block; padding:1px 7px; border-radius:4px; font-size:10px; font-weight:600; background:#eee; color:#555; margin-left:4px; vertical-align:middle; }
+        .cat-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid #f0f0f0; }
+        .cat-item:last-child { border-bottom:none; }
+        .cat-item-name { flex:1; font-size:14px; font-weight:500; }
+        .cat-item-count { font-size:11px; color:var(--muted); }
+        .cat-item-edit { background:none; border:none; cursor:pointer; font-size:13px; padding:2px 4px; }
+        .cat-item-edit:hover { color:var(--red); }
     </style>
 </head>
 <body>
@@ -279,15 +298,15 @@ async function checkAuth(){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
             <div style="background:#fce4ec;border-radius:8px;padding:10px;">
                 <div style="font-size:11px;color:var(--red);">S-Förderdarlehen</div>
-                <div style="font-size:18px;font-weight:700;">458 €</div>
+                <div style="font-size:18px;font-weight:700;" id="db_rate_f">458 €</div>
             </div>
             <div style="background:#e3f2fd;border-radius:8px;padding:10px;">
                 <div style="font-size:11px;color:var(--blue);">Sparkasse</div>
-                <div style="font-size:18px;font-weight:700;">622 €</div>
+                <div style="font-size:18px;font-weight:700;" id="db_rate_s">622 €</div>
             </div>
             <div style="background:#fff3e0;border-radius:8px;padding:10px;">
                 <div style="font-size:11px;color:var(--orange);">NRW.BANK</div>
-                <div style="font-size:18px;font-weight:700;">1.204 €</div>
+                <div style="font-size:18px;font-weight:700;" id="db_rate_n">1.204 €</div>
             </div>
             <div style="background:#e0f2f1;border-radius:8px;padding:10px;">
                 <div style="font-size:11px;color:var(--teal);">AG-Darlehen + Bauspar</div>
@@ -525,6 +544,26 @@ async function checkAuth(){
 </div>
 
 <!-- Controls -->
+<div class="card">
+    <h2>Zinsen Phase 1 (bis 2036)</h2>
+    <div class="controls">
+        <div class="ctrl">
+            <label>Zins S-Förderdarlehen (%)</label>
+            <input type="range" id="inZF" min="1.0" max="6.0" step="0.05" value="3.76">
+            <span class="cv" id="vZF">3,76%</span>
+        </div>
+        <div class="ctrl">
+            <label>Zins Sparkasse (%)</label>
+            <input type="range" id="inZS" min="1.0" max="6.0" step="0.05" value="3.95">
+            <span class="cv" id="vZS">3,95%</span>
+        </div>
+        <div class="ctrl">
+            <label>Zins NRW.BANK (%)</label>
+            <input type="range" id="inZN" min="1.0" max="6.0" step="0.05" value="3.96">
+            <span class="cv" id="vZN">3,96%</span>
+        </div>
+    </div>
+</div>
 <div class="card">
     <h2>Szenario-Parameter</h2>
     <div class="controls">
@@ -976,6 +1015,21 @@ async function checkAuth(){
                     <label>Name *</label>
                     <input type="text" id="mf_name" required placeholder="z.B. Dach dämmen">
                 </div>
+                <div class="um-field" id="mf_parent_wrap">
+                    <label>Übergeordnete Aufgabe</label>
+                    <select id="mf_parentId" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;width:100%;">
+                        <option value="">— Keine (Hauptaufgabe) —</option>
+                    </select>
+                </div>
+                <div class="um-field">
+                    <label>Kategorie</label>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <select id="mf_categoryId" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;flex:1;">
+                            <option value="">— Keine —</option>
+                        </select>
+                        <button type="button" onclick="openCategoryManager()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--muted);white-space:nowrap;" title="Kategorien verwalten">⚙️</button>
+                    </div>
+                </div>
                 <div class="um-field">
                     <label>Beschreibung</label>
                     <textarea id="mf_desc" rows="2" placeholder="Details zur Maßnahme..."></textarea>
@@ -1029,6 +1083,22 @@ async function checkAuth(){
     </div>
 </div>
 
+<!-- Category Manager Overlay -->
+<div class="overlay" id="categoryOverlay">
+    <div class="overlay-box" style="max-width:440px;">
+        <button class="overlay-close" onclick="closeCategoryManager()">&times;</button>
+        <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;">Kategorien verwalten</h3>
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+            <input type="text" id="cat_newName" placeholder="Neue Kategorie (z.B. Böden)" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none;" onkeydown="if(event.key==='Enter'){event.preventDefault();addCategory();}">
+            <button type="button" onclick="addCategory()" class="um-btn um-btn-primary" style="white-space:nowrap;">+ Hinzufügen</button>
+        </div>
+        <div id="cat_list" style="max-height:350px;overflow-y:auto;"></div>
+        <div style="text-align:right;margin-top:16px;">
+            <button type="button" onclick="closeCategoryManager()" class="um-btn">Schließen</button>
+        </div>
+    </div>
+</div>
+
 <!-- Tab 3: Kostenrechner -->
 <div id="tab-kostenrechner" class="tab-panel">
     <div class="card">
@@ -1054,6 +1124,10 @@ async function checkAuth(){
                     <option value="39">39 Wochen</option>
                     <option value="52">52 Wochen</option>
                 </select>
+                <select id="ganttCategoryFilter" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;" onchange="renderGantt()">
+                    <option value="">Alle Kategorien</option>
+                </select>
+                <button onclick="openMeasureForm()" class="um-btn um-btn-primary" style="padding:5px 12px;font-size:12px;">+ Neue Maßnahme</button>
             </div>
         </div>
         <div id="ganttContainer" style="overflow-x:auto;position:relative;border:1px solid var(--border);border-radius:8px;"></div>
@@ -1267,16 +1341,31 @@ function run() {
     const bUse  = document.getElementById('inBU').value;
     const cmp   = document.getElementById('inCmp').checked;
 
+    // Phase 1 Zinsen (adjustable)
+    const zF = +document.getElementById('inZF').value; // S-Förder
+    const zS = +document.getElementById('inZS').value; // Sparkasse
+    const zN = +document.getElementById('inZN').value; // NRW.BANK
+    document.getElementById('vZF').textContent = F2(zF) + '%';
+    document.getElementById('vZS').textContent = F2(zS) + '%';
+    document.getElementById('vZN').textContent = F2(zN) + '%';
+
     document.getElementById('vST').textContent = F(stVal) + ' €';
     document.getElementById('vAR').textContent = F2(aRate) + '%';
     document.getElementById('vAT').textContent = F2(aTilg) + '%';
     // AG-Darlehen: 50.000 € / 10 Jahre = 416,67 €/Monat (fix)
 
-    // Phase 1
-    const p1F  = phase1(100000, 3.76, 457.85, 12, stVal);
-    const p1F0 = phase1(100000, 3.76, 457.85, 12, 0);
-    const p1S  = phase1(137000, 3.95, 622.21, 12, 0);
-    const p1N  = phase1(270000, 3.96, 1203.89, 13, 0);
+    // Phase 1 — monatliche Rate = Darlehensbetrag × (Zins + Anfangstilgung) / 100 / 12
+    // Anfangstilgungen (fix, abgeleitet aus Originalkonditionen)
+    const atF = 1.7342; // S-Förder: original 3.76% → 457.85 €
+    const atS = 1.501;  // Sparkasse: original 3.95% → 622.21 €
+    const atN = 1.391;  // NRW.BANK: original 3.96% → 1203.89 €
+    const payF = Math.round(100000 * (zF + atF) / 100 / 12 * 100) / 100;
+    const payS = Math.round(137000 * (zS + atS) / 100 / 12 * 100) / 100;
+    const payN = Math.round(270000 * (zN + atN) / 100 / 12 * 100) / 100;
+    const p1F  = phase1(100000, zF, payF, 12, stVal);
+    const p1F0 = phase1(100000, zF, payF, 12, 0);
+    const p1S  = phase1(137000, zS, payS, 12, 0);
+    const p1N  = phase1(270000, zN, payN, 13, 0);
 
     // AG-Darlehen
     const agD = calcAGDarlehen(50000, agTilg);
@@ -1363,13 +1452,13 @@ function run() {
         if (y < 2036) {
             if (y === 2026) {
                 // 2026: Darlehen ab Mai (nur Zinsen in tilgungsfreier Anlaufzeit bis Apr 2027)
-                bd.push({ label: 'S-Förderdarlehen (Zinsen)', amt: 100000*3.76/100/12, color: '#e2001a', startMon: 4 });
-                bd.push({ label: 'Sparkassendarlehen (Zinsen)', amt: 137000*3.95/100/12, color: '#1565c0', startMon: 4 });
-                bd.push({ label: 'NRW.BANK (Zinsen)', amt: 270000*3.96/100/12, color: '#ef6c00', startMon: 4 });
+                bd.push({ label: 'S-Förderdarlehen (Zinsen)', amt: 100000*zF/100/12, color: '#e2001a', startMon: 4 });
+                bd.push({ label: 'Sparkassendarlehen (Zinsen)', amt: 137000*zS/100/12, color: '#1565c0', startMon: 4 });
+                bd.push({ label: 'NRW.BANK (Zinsen)', amt: 270000*zN/100/12, color: '#ef6c00', startMon: 4 });
             } else if (y >= 2027) {
-                bd.push({ label: 'S-Förderdarlehen', amt: 457.85, color: '#e2001a', startMon: 0 });
-                bd.push({ label: 'Sparkassendarlehen', amt: 622.21, color: '#1565c0', startMon: 0 });
-                bd.push({ label: 'NRW.BANK', amt: 1203.89, color: '#ef6c00', startMon: 0 });
+                bd.push({ label: 'S-Förderdarlehen', amt: payF, color: '#e2001a', startMon: 0 });
+                bd.push({ label: 'Sparkassendarlehen', amt: payS, color: '#1565c0', startMon: 0 });
+                bd.push({ label: 'NRW.BANK', amt: payN, color: '#ef6c00', startMon: 0 });
             }
             bd.push({ label: 'Bauspar-Sparrate', amt: 426.33, color: '#2e7d32', startMon: y === 2026 ? 4 : 0 });
         } else if (y === 2036) {
@@ -1413,7 +1502,7 @@ function run() {
     document.getElementById('k1').textContent = F(totalRest10) + ' €';
     document.getElementById('k1s').textContent = `Darlehen: ${F(d2036.fBal + d2036.sBal + d2036.nBal)} € + BSP-Darl: ${F(67089)} € + AG: ${F(d2036.agBal)} €`;
 
-    const monthlyP1 = 457.85 + 622.21 + 1203.89 + 426.33 + agTilg + steuerMonatStart;
+    const monthlyP1 = payF + payS + payN + 426.33 + agTilg + steuerMonatStart;
     const monthlyP2 = p2F.monthlyPay + p2S.monthlyPay + p2N.monthlyPay + 575 + (d2036.agBal > 1 ? agTilg : 0) + (d2036.agBal > 1 ? (d2036.agBal * MASSTABSZINS / 100 / 12 * MARGINAL_TAX) : 0);
     document.getElementById('k2').textContent = F(monthlyP1) + ' €';
     document.getElementById('k3').textContent = F(monthlyP2) + ' €';
@@ -1442,6 +1531,9 @@ function run() {
     // === OVERVIEW DASHBOARD KPIs ===
     document.getElementById('db_total').textContent = F(monthlyP1 + nkMonat) + ' €';
     document.getElementById('db_kredit').textContent = F(monthlyP1) + ' €';
+    document.getElementById('db_rate_f').textContent = F(payF) + ' €';
+    document.getElementById('db_rate_s').textContent = F(payS) + ' €';
+    document.getElementById('db_rate_n').textContent = F(payN) + ' €';
 
     // Restschuld nach ~1 Jahr (approx from trimmed data)
     const currentDebt = trimmed.length > 1 ? trimmed[1].totalDebt : 557000;
@@ -1529,9 +1621,9 @@ function run() {
     charts.pay = new Chart(document.getElementById('cPay'), {
         type: 'bar',
         data: { labels, datasets: [
-            { label: 'S-Förder', data: trimmed.map(d => d.y < 2036 ? (d.y >= 2027 ? 457.85 : 0) : (d.fBal > 1 ? p2F.monthlyPay : 0)), backgroundColor: '#e2001a', stack: 'a' },
-            { label: 'Sparkasse', data: trimmed.map(d => d.y < 2036 ? (d.y >= 2027 ? 622.21 : 0) : (d.sBal > 1 ? p2S.monthlyPay : 0)), backgroundColor: '#1565c0', stack: 'a' },
-            { label: 'NRW.BANK', data: trimmed.map(d => d.y < 2036 ? (d.y >= 2027 ? 1203.89 : 0) : (d.nBal > 1 ? p2N.monthlyPay : 0)), backgroundColor: '#ef6c00', stack: 'a' },
+            { label: 'S-Förder', data: trimmed.map(d => d.y < 2036 ? (d.y >= 2027 ? payF : 0) : (d.fBal > 1 ? p2F.monthlyPay : 0)), backgroundColor: '#e2001a', stack: 'a' },
+            { label: 'Sparkasse', data: trimmed.map(d => d.y < 2036 ? (d.y >= 2027 ? payS : 0) : (d.sBal > 1 ? p2S.monthlyPay : 0)), backgroundColor: '#1565c0', stack: 'a' },
+            { label: 'NRW.BANK', data: trimmed.map(d => d.y < 2036 ? (d.y >= 2027 ? payN : 0) : (d.nBal > 1 ? p2N.monthlyPay : 0)), backgroundColor: '#ef6c00', stack: 'a' },
             { label: 'Bauspar-Sparen', data: trimmed.map(d => d.y >= 2026 && d.y < 2036 ? 426.33 : 0), backgroundColor: '#2e7d32', stack: 'a' },
             { label: 'Bauspar-Darl.', data: trimmed.map(d => d.bspDbt > 1 ? 575 : 0), backgroundColor: '#7b1fa2', stack: 'a' },
             { label: 'AG-Tilgung', data: trimmed.map(d => d.monatAG), backgroundColor: '#00796b', stack: 'a' },
@@ -1551,7 +1643,7 @@ function run() {
     charts.st = new Chart(document.getElementById('cST'), {
         type: 'line',
         data: { labels: stLbl, datasets: stScen.map((s, i) => {
-            const res = phase1(100000, 3.76, 457.85, 12, s);
+            const res = phase1(100000, zF, payF, 12, s);
             const vals = stLbl.map(ys => { const m = (+ys - 2026) * 12 + 8; return m > 120 ? res.rest : (res.months.find(r => r.m === m)?.bal ?? 0); });
             return { label: s === 0 ? 'Ohne ST' : F(s) + ' €/J', data: vals, borderColor: stCol[i], borderWidth: s === stVal ? 3 : 1.5, borderDash: s === 0 ? [6, 3] : [], tension: .3, pointRadius: s === stVal ? 4 : 1 };
         })},
@@ -1749,9 +1841,9 @@ function run() {
     }
 
     // Build loan tabs
-    buildLoanTab('tab-foerder', 'S-Förderdarlehen', 'var(--red)', p1F.months, p2F.months, restF, 3.76, aRate, aTilg, true);
-    buildLoanTab('tab-sparkasse', 'Sparkassendarlehen', 'var(--blue)', p1S.months, p2S.months, restS, 3.95, aRate, aTilg, false);
-    buildLoanTab('tab-nrw', 'NRW.BANK', 'var(--orange)', p1N.months, p2N.months, restN, 3.96, aRate, aTilg, false);
+    buildLoanTab('tab-foerder', 'S-Förderdarlehen', 'var(--red)', p1F.months, p2F.months, restF, zF, aRate, aTilg, true);
+    buildLoanTab('tab-sparkasse', 'Sparkassendarlehen', 'var(--blue)', p1S.months, p2S.months, restS, zS, aRate, aTilg, false);
+    buildLoanTab('tab-nrw', 'NRW.BANK', 'var(--orange)', p1N.months, p2N.months, restN, zN, aRate, aTilg, false);
 
     // --- Tab: AG-Darlehen (monatliche Detailansicht) ---
     {
@@ -1995,7 +2087,7 @@ function showRate(year) {
 }
 
 // Events
-['inST', 'inAR', 'inAT'].forEach(id => document.getElementById(id).addEventListener('input', run));
+['inST', 'inAR', 'inAT', 'inZF', 'inZS', 'inZN'].forEach(id => document.getElementById(id).addEventListener('input', run));
 ['inBU', 'inCmp'].forEach(id => document.getElementById(id).addEventListener('change', run));
 run();
 
@@ -2032,6 +2124,7 @@ run();
         }
         if (!m.dependsOn) m.dependsOn = [];
         if (!m.id) m.id = crypto.randomUUID();
+        if (m.parentId === undefined) m.parentId = null;
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(measures));
 
@@ -2050,6 +2143,131 @@ run();
     const addDays = (dateStr, n) => { const d = new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
     const findById = id => measures.find(m => m.id === id);
     const findIdxById = id => measures.findIndex(m => m.id === id);
+    const getChildren = parentId => measures.filter(m => m.parentId === parentId);
+    const isParent = id => measures.some(m => m.parentId === id);
+    const collapsedParents = new Set(JSON.parse(localStorage.getItem('umbau_collapsed') || '[]'));
+    function saveCollapsed() { localStorage.setItem('umbau_collapsed', JSON.stringify([...collapsedParents])); }
+
+    // Build display order: top-level tasks, each followed by their children
+    function getDisplayOrder() {
+        const topLevel = measures.filter(m => !m.parentId);
+        const ordered = [];
+        topLevel.forEach(m => {
+            ordered.push(m);
+            const children = getChildren(m.id);
+            children.forEach(c => ordered.push(c));
+        });
+        return ordered;
+    }
+
+    window.toggleCollapse = function(id) {
+        if (collapsedParents.has(id)) collapsedParents.delete(id);
+        else collapsedParents.add(id);
+        saveCollapsed();
+        renderGantt();
+    };
+
+    // Populate parent selector in form
+    function renderParentSelector(currentId) {
+        const sel = document.getElementById('mf_parentId');
+        sel.innerHTML = '<option value="">— Keine (Hauptaufgabe) —</option>';
+        measures.forEach(m => {
+            // Can't be parent of itself, can't select a child of current task as parent
+            if (currentId && m.id === currentId) return;
+            if (currentId && m.parentId === currentId) return;
+            // Only top-level tasks can be parents (no nesting deeper than 1 level)
+            if (m.parentId) return;
+            sel.innerHTML += `<option value="${m.id}">${esc(m.name)}</option>`;
+        });
+    }
+
+    // === CATEGORIES ===
+    const CAT_STORAGE_KEY = 'umbau_categories';
+    let categories = JSON.parse(localStorage.getItem(CAT_STORAGE_KEY) || '[]');
+    // Migrate: add categoryId to measures
+    measures.forEach(m => { if (m.categoryId === undefined) m.categoryId = null; });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(measures));
+
+    function saveCategories() { localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify(categories)); }
+    function getCategoryName(catId) { const c = categories.find(x => x.id === catId); return c ? c.name : ''; }
+
+    function renderCategorySelector(selectedCatId) {
+        const sel = document.getElementById('mf_categoryId');
+        sel.innerHTML = '<option value="">— Keine —</option>';
+        categories.forEach(c => {
+            sel.innerHTML += `<option value="${c.id}" ${c.id === selectedCatId ? 'selected' : ''}>${esc(c.name)}</option>`;
+        });
+    }
+
+    function renderCategoryList() {
+        const wrap = document.getElementById('cat_list');
+        if (categories.length === 0) {
+            wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">Noch keine Kategorien. Füge oben eine hinzu.</div>';
+            return;
+        }
+        wrap.innerHTML = categories.map((c, i) => {
+            const count = measures.filter(m => m.categoryId === c.id).length;
+            return `<div class="cat-item">
+                <span class="cat-item-name">${esc(c.name)}</span>
+                <span class="cat-item-count">${count} Maßnahme${count !== 1 ? 'n' : ''}</span>
+                <button class="cat-item-edit" onclick="renameCategoryPrompt(${i})" title="Umbenennen">✏️</button>
+                <button class="cat-item-edit" onclick="deleteCategory(${i})" title="Löschen">🗑️</button>
+            </div>`;
+        }).join('');
+    }
+
+    window.openCategoryManager = function() {
+        renderCategoryList();
+        document.getElementById('cat_newName').value = '';
+        document.getElementById('categoryOverlay').classList.add('open');
+    };
+    window.closeCategoryManager = function() {
+        document.getElementById('categoryOverlay').classList.remove('open');
+        // Refresh category selector in form if open
+        const catSel = document.getElementById('mf_categoryId');
+        const currentVal = catSel.value;
+        renderCategorySelector(currentVal);
+    };
+    document.getElementById('categoryOverlay').addEventListener('click', e => {
+        if (e.target.id === 'categoryOverlay') window.closeCategoryManager();
+    });
+
+    window.addCategory = function() {
+        const input = document.getElementById('cat_newName');
+        const name = input.value.trim();
+        if (!name) return;
+        if (categories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+            alert('Kategorie "' + name + '" existiert bereits.');
+            return;
+        }
+        categories.push({ id: crypto.randomUUID(), name });
+        saveCategories();
+        input.value = '';
+        renderCategoryList();
+    };
+
+    window.renameCategoryPrompt = function(idx) {
+        const c = categories[idx];
+        const newName = prompt('Kategorie umbenennen:', c.name);
+        if (newName === null || !newName.trim()) return;
+        c.name = newName.trim();
+        saveCategories();
+        renderCategoryList();
+    };
+
+    window.deleteCategory = function(idx) {
+        const c = categories[idx];
+        const count = measures.filter(m => m.categoryId === c.id).length;
+        let msg = 'Kategorie "' + c.name + '" löschen?';
+        if (count > 0) msg += '\n\n' + count + ' Maßnahme(n) verlieren diese Kategorie.';
+        if (!confirm(msg)) return;
+        const removedId = c.id;
+        categories.splice(idx, 1);
+        measures.forEach(m => { if (m.categoryId === removedId) m.categoryId = null; });
+        saveCategories();
+        save();
+        renderCategoryList();
+    };
 
     // === DEPENDENCY CASCADE ===
     function cascadeDependents(movedIdx) {
@@ -2132,12 +2350,18 @@ run();
         const empty = document.getElementById('measuresEmpty');
         if (measures.length === 0) { body.innerHTML = ''; empty.style.display = 'block'; return; }
         empty.style.display = 'none';
-        body.innerHTML = measures.map((m, i) => {
+        const ordered = getDisplayOrder();
+        body.innerHTML = ordered.map(m => {
+            const i = measures.indexOf(m);
+            const isSub = !!m.parentId;
+            const hasChildren = isParent(m.id);
             const dur = (m.startDate && m.endDate) ? daysBetween(m.startDate, m.endDate) : null;
             const depNames = (m.dependsOn||[]).map(id => { const d = findById(id); return d ? d.name : null; }).filter(Boolean);
-            return `<tr>
-                <td><div style="width:16px;height:16px;border-radius:4px;background:${m.color}"></div></td>
-                <td><strong>${esc(m.name)}</strong>${m.description ? '<br><span style="font-size:11px;color:var(--muted);">'+esc(m.description)+'</span>' : ''}</td>
+            const childCount = hasChildren ? ' <span style="font-size:10px;color:var(--muted);">(' + getChildren(m.id).length + ' Unteraufgaben)</span>' : '';
+            const addSubBtn = !isSub ? `<button onclick="event.stopPropagation();openSubtaskForm(${i})" style="background:none;border:none;cursor:pointer;font-size:14px;" title="Unteraufgabe hinzufügen">➕</button>` : '';
+            return `<tr class="${isSub ? 'table-subtask' : ''} ${hasChildren ? 'table-parent' : ''}">
+                <td><div style="width:${isSub?12:16}px;height:${isSub?12:16}px;border-radius:${isSub?3:4}px;background:${m.color};${isSub?'margin-left:16px;opacity:.8;':''}"></div></td>
+                <td>${isSub ? '<span style="color:var(--muted);font-size:10px;">↳</span> ' : ''}${isSub ? '' : '<strong>'}${esc(m.name)}${isSub ? '' : '</strong>'}${m.categoryId ? '<span class="cat-badge">'+esc(getCategoryName(m.categoryId))+'</span>' : ''}${childCount}${m.description ? '<br><span style="font-size:11px;color:var(--muted);">'+esc(m.description)+'</span>' : ''}</td>
                 <td>${esc(m.executor)}</td>
                 <td class="r">${m.plannedCost ? fmt(m.plannedCost) + ' €' : '<span style="color:var(--muted);">-</span>'}</td>
                 <td class="r">${m.actualCost !== null && m.actualCost !== undefined && m.actualCost !== '' ? fmt(m.actualCost) + ' €' : '<span style="color:var(--muted);">-</span>'}</td>
@@ -2146,6 +2370,7 @@ run();
                 <td><span class="um-badge ${m.confirmed ? 'um-badge-yes' : 'um-badge-no'}">${m.confirmed ? 'Ja' : 'Nein'}</span></td>
                 <td style="white-space:nowrap;">
                     <button onclick="editMeasure(${i})" style="background:none;border:none;cursor:pointer;font-size:14px;" title="Bearbeiten">✏️</button>
+                    ${addSubBtn}
                     <button onclick="deleteMeasure(${i})" style="background:none;border:none;cursor:pointer;font-size:14px;" title="Löschen">🗑️</button>
                 </td>
             </tr>`;
@@ -2159,12 +2384,18 @@ run();
             wrap.innerHTML = '<span style="font-size:12px;color:var(--muted);">Erst bei mehreren Maßnahmen verfügbar</span>';
             return;
         }
+        const currentId = currentIdx !== undefined ? measures[currentIdx].id : null;
+        const currentParentId = currentIdx !== undefined ? measures[currentIdx].parentId : document.getElementById('mf_parentId').value || null;
         wrap.innerHTML = measures.map((m, i) => {
             if (currentIdx !== undefined && i === currentIdx) return '';
+            // Skip own parent or own children as dependency options
+            if (currentId && m.parentId === currentId) return '';
+            if (currentParentId && m.id === currentParentId) return '';
             const isSelected = selectedDeps.includes(m.id);
+            const prefix = m.parentId ? '↳ ' : '';
             return `<div class="um-dep-toggle ${isSelected ? 'active' : ''}" onclick="toggleDep('${m.id}')" style="${isSelected ? 'background:'+m.color+';border-color:'+m.color+';' : ''}">
                 <div style="width:8px;height:8px;border-radius:2px;background:${isSelected ? '#fff' : m.color};"></div>
-                ${esc(m.name)}</div>`;
+                ${prefix}${esc(m.name)}</div>`;
         }).join('');
     }
 
@@ -2176,13 +2407,17 @@ run();
         renderDepsSelector(currentIdx !== '' ? parseInt(currentIdx) : undefined);
     };
 
-    window.openMeasureForm = function(idx) {
+    window.openMeasureForm = function(idx, presetParentId) {
         const form = document.getElementById('measureForm');
         form.reset();
         document.getElementById('mf_id').value = '';
         document.getElementById('measureFormTitle').textContent = 'Neue Maßnahme';
         selectedColor = COLORS[measures.length % COLORS.length];
         selectedDeps = [];
+        const currentId = (idx !== undefined) ? measures[idx].id : null;
+        renderParentSelector(currentId);
+        renderCategorySelector(null);
+        document.getElementById('mf_parentId').value = presetParentId || '';
         if (idx !== undefined) {
             const m = measures[idx];
             document.getElementById('mf_id').value = idx;
@@ -2196,7 +2431,13 @@ run();
             document.getElementById('mf_confirmed').checked = m.confirmed;
             selectedColor = m.color;
             selectedDeps = [...(m.dependsOn || [])];
+            document.getElementById('mf_parentId').value = m.parentId || '';
+            renderCategorySelector(m.categoryId);
             document.getElementById('measureFormTitle').textContent = 'Maßnahme bearbeiten';
+            // If this task has children, hide the parent selector (can't nest deeper)
+            document.getElementById('mf_parent_wrap').style.display = isParent(m.id) ? 'none' : '';
+        } else {
+            document.getElementById('mf_parent_wrap').style.display = '';
         }
         renderColorSwatches();
         renderDepsSelector(idx);
@@ -2204,6 +2445,14 @@ run();
     };
 
     window.editMeasure = function(idx) { window.openMeasureForm(idx); };
+    window.openSubtaskForm = function(parentIdx) {
+        const parentId = measures[parentIdx].id;
+        window.openMeasureForm(undefined, parentId);
+        document.getElementById('measureFormTitle').textContent = 'Neue Unteraufgabe';
+        // Inherit color from parent
+        selectedColor = measures[parentIdx].color;
+        renderColorSwatches();
+    };
 
     window.closeMeasureForm = function() {
         document.getElementById('measureOverlay').classList.remove('open');
@@ -2232,6 +2481,7 @@ run();
         const plannedVal = document.getElementById('mf_planned').value;
         const startVal = document.getElementById('mf_startDate').value;
         const endVal = document.getElementById('mf_endDate').value;
+        const parentVal = document.getElementById('mf_parentId').value;
         const data = {
             id: idVal !== '' ? measures[parseInt(idVal)].id : crypto.randomUUID(),
             name: document.getElementById('mf_name').value.trim(),
@@ -2244,6 +2494,8 @@ run();
             confirmed: document.getElementById('mf_confirmed').checked,
             color: selectedColor,
             dependsOn: [...selectedDeps],
+            parentId: parentVal || null,
+            categoryId: document.getElementById('mf_categoryId').value || null,
         };
         if (idVal !== '') {
             const idx = parseInt(idVal);
@@ -2257,12 +2509,19 @@ run();
     };
 
     window.deleteMeasure = function(idx) {
-        if (!confirm('Maßnahme "' + measures[idx].name + '" wirklich löschen?')) return;
-        const removedId = measures[idx].id;
-        measures.splice(idx, 1);
+        const m = measures[idx];
+        const children = getChildren(m.id);
+        let msg = 'Maßnahme "' + m.name + '" wirklich löschen?';
+        if (children.length > 0) msg += '\n\nAchtung: ' + children.length + ' Unteraufgabe(n) werden ebenfalls gelöscht!';
+        if (!confirm(msg)) return;
+        const removedIds = [m.id, ...children.map(c => c.id)];
+        // Remove parent + children
+        for (let i = measures.length - 1; i >= 0; i--) {
+            if (removedIds.includes(measures[i].id)) measures.splice(i, 1);
+        }
         // Clean up dependency references
-        measures.forEach(m => {
-            if (m.dependsOn) m.dependsOn = m.dependsOn.filter(id => id !== removedId);
+        measures.forEach(m2 => {
+            if (m2.dependsOn) m2.dependsOn = m2.dependsOn.filter(id => !removedIds.includes(id));
         });
         save();
     };
@@ -2378,8 +2637,38 @@ run();
         const startDate = new Date(ganttStart + 'T00:00:00');
         const totalWeeks = parseInt(document.getElementById('ganttWeeks').value);
         const totalDays = totalWeeks * 7;
-        const scheduled = measures.filter(m => m.startDate && m.endDate);
-        const unscheduled = measures.filter(m => !m.startDate || !m.endDate);
+        // Populate category filter
+        const catFilter = document.getElementById('ganttCategoryFilter');
+        const currentCatFilter = catFilter.value;
+        catFilter.innerHTML = '<option value="">Alle Kategorien</option><option value="__none__">Ohne Kategorie</option>';
+        categories.forEach(c => { catFilter.innerHTML += `<option value="${c.id}"${c.id === currentCatFilter ? ' selected' : ''}>${esc(c.name)}</option>`; });
+        catFilter.value = currentCatFilter;
+        // Category filter function
+        const matchesCatFilter = m => {
+            if (!currentCatFilter) return true;
+            if (currentCatFilter === '__none__') return !m.categoryId;
+            // Show task if it matches, or if it's a parent with matching children, or child of matching parent
+            if (m.categoryId === currentCatFilter) return true;
+            if (m.parentId) { const parent = findById(m.parentId); return parent && parent.categoryId === currentCatFilter; }
+            if (isParent(m.id)) return getChildren(m.id).some(c => c.categoryId === currentCatFilter);
+            return false;
+        };
+        // Build hierarchical display order, respecting collapsed state
+        const displayOrder = getDisplayOrder();
+        const visibleScheduled = [];
+        displayOrder.forEach(m => {
+            if (!m.startDate || !m.endDate) return;
+            if (m.parentId && collapsedParents.has(m.parentId)) return;
+            if (!matchesCatFilter(m)) return;
+            visibleScheduled.push(m);
+        });
+        const scheduled = visibleScheduled;
+        const unscheduled = displayOrder.filter(m => {
+            if (m.startDate && m.endDate) return false;
+            if (m.parentId && collapsedParents.has(m.parentId)) return false;
+            if (!matchesCatFilter(m)) return false;
+            return true;
+        });
 
         if (measures.length === 0) {
             container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:14px;">Lege zuerst Maßnahmen an, um sie hier einzuplanen.</div>';
@@ -2417,10 +2706,17 @@ run();
             const mIdx = measures.indexOf(m);
             const startOff = dateToDayOffset(m.startDate, ganttStart);
             const dur = daysBetween(m.startDate, m.endDate);
+            const isSub = !!m.parentId;
+            const hasChildren = isParent(m.id);
+            const isCollapsed = collapsedParents.has(m.id);
             rowsHtml += `<div style="display:flex;height:${ROW_H}px;" data-row="${si}">`;
-            // Dependency indicator
+            // Collapse toggle + dependency indicator
+            const collapseBtn = hasChildren ? `<button class="gantt-collapse-btn" onclick="event.stopPropagation();toggleCollapse('${m.id}')" title="${isCollapsed ? 'Aufklappen' : 'Zuklappen'}">${isCollapsed ? '▶' : '▼'}</button>` : '';
             const depIndicator = (m.dependsOn && m.dependsOn.length) ? '<span style="font-size:9px;color:var(--muted);" title="Hat Abhängigkeiten">🔗</span>' : '';
-            rowsHtml += `<div class="gantt-label" style="width:${LABEL_W}px;min-width:${LABEL_W}px;height:${ROW_H}px;cursor:pointer;" onclick="editMeasure(${mIdx})" title="Klicken zum Bearbeiten"><div style="width:10px;height:10px;border-radius:3px;background:${m.color};flex-shrink:0;"></div>${esc(m.name)} ${depIndicator}</div>`;
+            const addSubBtn = !isSub ? `<button class="gantt-add-sub" onclick="event.stopPropagation();openSubtaskForm(${mIdx})" title="Unteraufgabe hinzufügen">+</button>` : '';
+            const labelClass = isSub ? 'gantt-label gantt-label-indent' : 'gantt-label';
+            const subIcon = isSub ? '<span style="font-size:9px;color:var(--muted);margin-right:2px;">↳</span>' : '';
+            rowsHtml += `<div class="${labelClass}" style="width:${LABEL_W}px;min-width:${LABEL_W}px;height:${ROW_H}px;cursor:pointer;" onclick="editMeasure(${mIdx})" title="Klicken zum Bearbeiten">${collapseBtn}<div style="width:${isSub?8:10}px;height:${isSub?8:10}px;border-radius:${isSub?2:3}px;background:${m.color};flex-shrink:0;"></div>${subIcon}${esc(m.name)} ${depIndicator}${addSubBtn}</div>`;
             rowsHtml += `<div class="gantt-row-bg" style="flex:1;height:${ROW_H}px;position:relative;" data-midx="${mIdx}">`;
 
             for (let d = 0; d < totalDays; d++) {
@@ -2431,7 +2727,8 @@ run();
 
             const barLeft = startOff * DAY_PX;
             const barW = Math.max(1, dur) * DAY_PX;
-            rowsHtml += `<div class="gantt-bar" style="left:${barLeft}px;width:${barW}px;background:${m.color};" data-midx="${mIdx}"
+            const barClass = isSub ? 'gantt-bar gantt-subtask-bar' : 'gantt-bar';
+            rowsHtml += `<div class="${barClass}" style="left:${barLeft}px;width:${barW}px;background:${m.color};" data-midx="${mIdx}"
                 onpointerdown="ganttPointerDown(event,${mIdx})"
                 onpointermove="ganttPointerMove(event)"
                 onpointerup="ganttPointerUp(event,${mIdx})"
@@ -2485,9 +2782,10 @@ run();
             let h = `<div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;">Nicht eingeplant — auf den Zeitplan ziehen:</div>`;
             unscheduled.forEach(m => {
                 const mIdx = measures.indexOf(m);
-                h += `<div class="gantt-unscheduled-item" style="background:${m.color};" draggable="true"
+                const prefix = m.parentId ? '↳ ' : '';
+                h += `<div class="gantt-unscheduled-item" style="background:${m.color};${m.parentId ? 'opacity:.8;font-size:11px;' : ''}" draggable="true"
                     ondragstart="ganttUnschedDragStart(event,${mIdx})"
-                    onclick="editMeasure(${mIdx})" title="Klicken zum Bearbeiten">${esc(m.name)}</div>`;
+                    onclick="editMeasure(${mIdx})" title="Klicken zum Bearbeiten">${prefix}${esc(m.name)}</div>`;
             });
             unschedWrap.innerHTML = h;
         } else unschedWrap.innerHTML = '';
@@ -2581,7 +2879,9 @@ run();
         if (!tooltipEl) { tooltipEl = document.createElement('div'); tooltipEl.className = 'gantt-tooltip'; document.body.appendChild(tooltipEl); }
         const dur = (m.startDate && m.endDate) ? daysBetween(m.startDate, m.endDate) : null;
         const depNames = (m.dependsOn||[]).map(id => { const d = findById(id); return d ? d.name : null; }).filter(Boolean);
-        tooltipEl.innerHTML = `<strong>${esc(m.name)}</strong><br>
+        const parentName = m.parentId ? findById(m.parentId) : null;
+        const catName = m.categoryId ? getCategoryName(m.categoryId) : '';
+        tooltipEl.innerHTML = `<strong>${esc(m.name)}</strong>${catName ? ' <span style="opacity:.7;font-size:11px;">['+esc(catName)+']</span>' : ''}${parentName ? '<br><span style="opacity:.7;">↳ '+esc(parentName.name)+'</span>' : ''}<br>
             ${dateFmt(m.startDate)} — ${dateFmt(m.endDate)}${dur !== null ? ' ('+dur+' Tage)' : ''}<br>
             Geplant: ${m.plannedCost ? fmt(m.plannedCost)+' €' : '-'} | Ist: ${m.actualCost !== null && m.actualCost !== undefined ? fmt(m.actualCost)+' €' : '-'}<br>
             Ausführer: ${esc(m.executor)}<br>
