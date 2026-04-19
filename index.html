@@ -2729,10 +2729,8 @@ run();
             const barW = Math.max(1, dur) * DAY_PX;
             const barClass = isSub ? 'gantt-bar gantt-subtask-bar' : 'gantt-bar';
             rowsHtml += `<div class="${barClass}" style="left:${barLeft}px;width:${barW}px;background:${m.color};" data-midx="${mIdx}"
-                onpointerdown="ganttPointerDown(event,${mIdx})"
-                onpointermove="ganttPointerMove(event)"
-                onpointerup="ganttPointerUp(event,${mIdx})"
-                ondblclick="editMeasure(${mIdx})"
+                onmousedown="ganttPointerDown(event,${mIdx})"
+                onclick="ganttBarClick(event,${mIdx})"
                 onmouseenter="showGanttTooltip(event,${mIdx})"
                 onmouseleave="hideGanttTooltip()">
                 <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;pointer-events:none;">${esc(m.name)}</span>
@@ -2814,10 +2812,56 @@ run();
     };
 
     // Pointer drag for bars
+    let suppressNextClick = false;
+
+    window.ganttBarClick = function(e, mIdx) {
+        if (suppressNextClick) { suppressNextClick = false; return; }
+        editMeasure(mIdx);
+    };
+
+    function ganttDocMouseMove(e) {
+        if (!dragState) return;
+        const dx = e.clientX - dragState.startX;
+        if (!dragState.dragging && Math.abs(dx) < 5) return;
+        dragState.dragging = true;
+        const deltaDays = Math.round(dx / DAY_PX);
+        if (dragState.isResize) {
+            const newDur = Math.max(1, dragState.origDur + deltaDays);
+            measures[dragState.mIdx].endDate = addDays(dragState.origStartDate, newDur);
+            dragState.bar.style.width = newDur * DAY_PX + 'px';
+        } else {
+            const newOff = Math.max(0, dragState.origStartOff + deltaDays);
+            const newStart = addDays(dragState.ganttStart, newOff);
+            measures[dragState.mIdx].startDate = newStart;
+            measures[dragState.mIdx].endDate = addDays(newStart, dragState.origDur);
+            dragState.bar.style.left = newOff * DAY_PX + 'px';
+        }
+    }
+
+    function ganttDocMouseUp(e) {
+        if (!dragState) return;
+        const wasDrag = dragState.dragging;
+        const mIdx = dragState.mIdx;
+        document.removeEventListener('mousemove', ganttDocMouseMove);
+        document.removeEventListener('mouseup', ganttDocMouseUp);
+        if (!wasDrag) {
+            measures[mIdx].startDate = dragState.origStartDate;
+            measures[mIdx].endDate = dragState.origEndDate;
+        }
+        dragState = null;
+        if (wasDrag) {
+            suppressNextClick = true;
+            cascadeDependents(mIdx);
+            save();
+            renderGantt();
+        }
+    }
+
     window.ganttPointerDown = function(e, mIdx) {
+        // Only left mouse button starts drag
+        if (e.button !== undefined && e.button !== 0) return;
         const bar = e.currentTarget;
         const isResize = e.target.dataset.resize === '1';
-        bar.setPointerCapture(e.pointerId);
         const m = measures[mIdx];
         const ganttStart = ganttDateInput.value;
         dragState = {
@@ -2829,48 +2873,13 @@ run();
             isResize, bar, ganttStart,
             dragging: false
         };
-        e.preventDefault();
+        document.addEventListener('mousemove', ganttDocMouseMove);
+        document.addEventListener('mouseup', ganttDocMouseUp);
     };
 
-    window.ganttPointerMove = function(e) {
-        if (!dragState) return;
-        const dx = e.clientX - dragState.startX;
-        // Only start actual drag after 5px threshold
-        if (!dragState.dragging && Math.abs(dx) < 5) return;
-        dragState.dragging = true;
-        const deltaDays = Math.round(dx / DAY_PX);
-        if (dragState.isResize) {
-            const newDur = Math.max(1, dragState.origDur + deltaDays);
-            const newEndDate = addDays(dragState.origStartDate, newDur);
-            measures[dragState.mIdx].endDate = newEndDate;
-            dragState.bar.style.width = newDur * DAY_PX + 'px';
-        } else {
-            const newOff = Math.max(0, dragState.origStartOff + deltaDays);
-            const newStart = addDays(dragState.ganttStart, newOff);
-            measures[dragState.mIdx].startDate = newStart;
-            measures[dragState.mIdx].endDate = addDays(newStart, dragState.origDur);
-            dragState.bar.style.left = newOff * DAY_PX + 'px';
-        }
-    };
-
-    window.ganttPointerUp = function(e, mIdx) {
-        if (!dragState) return;
-        const wasDrag = dragState.dragging;
-        dragState.bar.releasePointerCapture(e.pointerId);
-        if (!wasDrag) {
-            // Restore original values (pointerMove may not have fired but just in case)
-            measures[mIdx].startDate = dragState.origStartDate;
-            measures[mIdx].endDate = dragState.origEndDate;
-        }
-        dragState = null;
-        if (wasDrag) {
-            cascadeDependents(mIdx);
-            save();
-            renderGantt();
-        } else {
-            editMeasure(mIdx);
-        }
-    };
+    // No-op handlers (kept for backward compat with inline attributes)
+    window.ganttPointerMove = function() {};
+    window.ganttPointerUp = function() {};
 
     // Tooltip
     window.showGanttTooltip = function(e, mIdx) {
