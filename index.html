@@ -216,6 +216,59 @@ async function checkAuth(){
 <div class="dash-section active" id="sec-overview">
 <div class="container">
 
+<!-- ÜBERSICHT: Soll- & Effektivzins + Kosten — alle Darlehen auf einem Blatt -->
+<div class="card" style="border-left:4px solid var(--red);margin-bottom:16px;">
+    <h2 style="font-size:16px;display:flex;justify-content:space-between;align-items:baseline;">
+        <span>Konditionen &amp; Kosten — Was wir wirklich zahlen</span>
+        <span style="font-size:11px;color:var(--muted);font-weight:400;">Stand: April 2026 · Effektivzinsen editierbar in den Controls</span>
+    </h2>
+    <div style="overflow-x:auto;">
+    <table id="db_kondtab" style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;">
+        <thead>
+            <tr style="background:#f5f5f5;text-align:left;">
+                <th style="padding:8px 10px;border-bottom:2px solid #ddd;">Darlehen</th>
+                <th style="padding:8px 10px;border-bottom:2px solid #ddd;text-align:right;">Betrag</th>
+                <th style="padding:8px 10px;border-bottom:2px solid #ddd;text-align:right;">Sollzins</th>
+                <th style="padding:8px 10px;border-bottom:2px solid #ddd;text-align:right;">Effektivzins</th>
+                <th style="padding:8px 10px;border-bottom:2px solid #ddd;text-align:right;">Mtl. Rate</th>
+                <th style="padding:8px 10px;border-bottom:2px solid #ddd;text-align:right;">Zinsen bis 2036</th>
+                <th style="padding:8px 10px;border-bottom:2px solid #ddd;text-align:right;">Gesamtkosten</th>
+                <th style="padding:8px 10px;border-bottom:2px solid #ddd;">Hinweis</th>
+            </tr>
+        </thead>
+        <tbody id="db_kondtab_body"></tbody>
+        <tfoot id="db_kondtab_foot"></tfoot>
+    </table>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:14px;">
+        <div style="background:#fff3e0;border-radius:8px;padding:10px;">
+            <div style="font-size:11px;color:var(--muted);">Mtl. Rate Phase 1 (heute)</div>
+            <div style="font-size:20px;font-weight:800;color:var(--orange);" id="ko_p1">-</div>
+            <div style="font-size:10px;color:var(--muted);">Kredite + Bauspar + AG-Steuer</div>
+        </div>
+        <div style="background:#ede7f6;border-radius:8px;padding:10px;">
+            <div style="font-size:11px;color:var(--muted);">Mtl. Rate Phase 2 (ab 2036)</div>
+            <div style="font-size:20px;font-weight:800;color:var(--purple);" id="ko_p2">-</div>
+            <div style="font-size:10px;color:var(--muted);">Anschluss + Bauspardarlehen</div>
+        </div>
+        <div style="background:#fce4ec;border-radius:8px;padding:10px;">
+            <div style="font-size:11px;color:var(--muted);">Gesamtzinsen + Kosten (Laufzeit)</div>
+            <div style="font-size:20px;font-weight:800;color:var(--red);" id="ko_total">-</div>
+            <div style="font-size:10px;color:var(--muted);">Sollzinsen + AG-Steuer + Gebühren</div>
+        </div>
+        <div style="background:#e8f5e9;border-radius:8px;padding:10px;">
+            <div style="font-size:11px;color:var(--muted);">Schuldenfrei ca.</div>
+            <div style="font-size:20px;font-weight:800;color:var(--green);" id="ko_frei">-</div>
+            <div style="font-size:10px;color:var(--muted);">bei aktuellen Parametern</div>
+        </div>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--muted);line-height:1.5;">
+        <strong>Lesehilfe:</strong> Sollzins = vereinbarter Nominalzins. Effektivzins = Gesamtkosten p.a. inkl. Bearbeitung/Gebühren (Vergleichswert).
+        NRW.BANK: 4 Monate zinsfreie Anlaufzeit (Mai–Aug 2026), erste Zinszahlung 01.09.2026.
+        Tilgungsstart: S-Förder/KfW + Sparkasse Mai 2027, NRW.BANK Mai 2027. AG-Darlehen tilgt sofort ab April 2026 (zinsfrei, nur geldwerter Vorteil als Steuer).
+    </div>
+</div>
+
 <!-- Hero Metrics -->
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px;">
     <div class="dash-metric" style="border-top:4px solid var(--red);">
@@ -306,7 +359,8 @@ async function checkAuth(){
             </div>
             <div style="background:#fff3e0;border-radius:8px;padding:10px;">
                 <div style="font-size:11px;color:var(--orange);">NRW.BANK</div>
-                <div style="font-size:18px;font-weight:700;" id="db_rate_n">1.204 €</div>
+                <div style="font-size:18px;font-weight:700;" id="db_rate_n">1.177 €</div>
+                <div style="font-size:10px;color:var(--muted);">Zinsen ab 01.09.2026</div>
             </div>
             <div style="background:#e0f2f1;border-radius:8px;padding:10px;">
                 <div style="font-size:11px;color:var(--teal);">AG-Darlehen + Bauspar</div>
@@ -548,19 +602,34 @@ async function checkAuth(){
     <h2>Zinsen Phase 1 (bis 2036)</h2>
     <div class="controls">
         <div class="ctrl">
-            <label>Zins S-Förderdarlehen (%)</label>
-            <input type="range" id="inZF" min="1.0" max="6.0" step="0.05" value="3.76">
+            <label>Sollzins S-Förderdarlehen / KfW (%)</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <input type="range" id="inZF" min="1.0" max="6.0" step="0.01" value="3.76" style="flex:1;">
+                <input type="number" id="inZFnum" min="0" max="10" step="0.01" value="3.76" style="width:74px;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+            </div>
             <span class="cv" id="vZF">3,76%</span>
+            <label style="margin-top:6px;font-size:11px;color:var(--muted);">Effektivzins (%)</label>
+            <input type="number" id="inEF" min="0" max="10" step="0.01" value="3.82" style="width:90px;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
         </div>
         <div class="ctrl">
-            <label>Zins Sparkasse (%)</label>
-            <input type="range" id="inZS" min="1.0" max="6.0" step="0.05" value="3.95">
+            <label>Sollzins Sparkasse (%)</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <input type="range" id="inZS" min="1.0" max="6.0" step="0.01" value="3.95" style="flex:1;">
+                <input type="number" id="inZSnum" min="0" max="10" step="0.01" value="3.95" style="width:74px;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+            </div>
             <span class="cv" id="vZS">3,95%</span>
+            <label style="margin-top:6px;font-size:11px;color:var(--muted);">Effektivzins (%)</label>
+            <input type="number" id="inES" min="0" max="10" step="0.01" value="4.02" style="width:90px;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
         </div>
         <div class="ctrl">
-            <label>Zins NRW.BANK (%)</label>
-            <input type="range" id="inZN" min="1.0" max="6.0" step="0.05" value="3.96">
-            <span class="cv" id="vZN">3,96%</span>
+            <label>Sollzins NRW.BANK (%) <span style="font-size:11px;color:var(--muted);">— Zinsen erst ab 01.09.2026</span></label>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <input type="range" id="inZN" min="1.0" max="6.0" step="0.01" value="3.84" style="flex:1;">
+                <input type="number" id="inZNnum" min="0" max="10" step="0.01" value="3.84" style="width:74px;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+            </div>
+            <span class="cv" id="vZN">3,84%</span>
+            <label style="margin-top:6px;font-size:11px;color:var(--muted);">Effektivzins (%)</label>
+            <input type="number" id="inEN" min="0" max="10" step="0.01" value="3.91" style="width:90px;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
         </div>
     </div>
 </div>
@@ -574,12 +643,18 @@ async function checkAuth(){
         </div>
         <div class="ctrl">
             <label>Anschlusszins ab 2036 (%)</label>
-            <input type="range" id="inAR" min="1.5" max="6.0" step="0.1" value="3.5">
+            <div style="display:flex;gap:8px;align-items:center;">
+                <input type="range" id="inAR" min="1.0" max="6.0" step="0.01" value="3.5" style="flex:1;">
+                <input type="number" id="inARnum" min="0" max="10" step="0.01" value="3.50" style="width:74px;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+            </div>
             <span class="cv" id="vAR">3,50%</span>
         </div>
         <div class="ctrl">
             <label>Anschluss-Tilgung (%)</label>
-            <input type="range" id="inAT" min="1.0" max="5.0" step="0.25" value="2.0">
+            <div style="display:flex;gap:8px;align-items:center;">
+                <input type="range" id="inAT" min="0.5" max="5.0" step="0.05" value="2.0" style="flex:1;">
+                <input type="number" id="inATnum" min="0" max="10" step="0.05" value="2.00" style="width:74px;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+            </div>
             <span class="cv" id="vAT">2,00%</span>
         </div>
         <div class="ctrl">
@@ -1180,13 +1255,14 @@ const MASSTABSZINS = BUNDESBANK_RATE * (1 - BEWERTUNGSABSCHLAG); // ~3.4368%
 // CALCULATION ENGINE
 // ============================================================
 
-function phase1(amt, rateP, monthlyPay, tilgStartM, stPerYear) {
+function phase1(amt, rateP, monthlyPay, tilgStartM, stPerYear, interestStartM = 1) {
     const mr = rateP / 100 / 12;
     let bal = amt;
     const months = [{ m: 0, bal }];
     let totI = 0, totT = 0, totST = 0;
     for (let m = 1; m <= 120; m++) {
-        const interest = bal * mr;
+        // Vor interestStartM: tilgungs- UND zinsfreie Anlaufzeit (z.B. NRW.BANK ab 01.09.2026)
+        const interest = m < interestStartM ? 0 : bal * mr;
         let tilg = 0, pay = 0, st = 0;
         if (m >= tilgStartM) {
             pay = monthlyPay;
@@ -1356,16 +1432,17 @@ function run() {
 
     // Phase 1 — monatliche Rate = Darlehensbetrag × (Zins + Anfangstilgung) / 100 / 12
     // Anfangstilgungen (fix, abgeleitet aus Originalkonditionen)
-    const atF = 1.7342; // S-Förder: original 3.76% → 457.85 €
+    const atF = 1.7342; // S-Förder/KfW: original 3.76% → 457.85 €
     const atS = 1.501;  // Sparkasse: original 3.95% → 622.21 €
-    const atN = 1.391;  // NRW.BANK: original 3.96% → 1203.89 €
+    const atN = 1.391;  // NRW.BANK: aktuell 3.84% → 1176.98 € (vorher 3.96% → 1203.89 €)
     const payF = Math.round(100000 * (zF + atF) / 100 / 12 * 100) / 100;
     const payS = Math.round(137000 * (zS + atS) / 100 / 12 * 100) / 100;
     const payN = Math.round(270000 * (zN + atN) / 100 / 12 * 100) / 100;
+    // NRW.BANK: Zinsen erst ab 01.09.2026 (Monat 5, da Monat 0 = April 2026, Monat 1 = Mai)
     const p1F  = phase1(100000, zF, payF, 12, stVal);
     const p1F0 = phase1(100000, zF, payF, 12, 0);
     const p1S  = phase1(137000, zS, payS, 12, 0);
-    const p1N  = phase1(270000, zN, payN, 13, 0);
+    const p1N  = phase1(270000, zN, payN, 13, 0, 5);
 
     // AG-Darlehen
     const agD = calcAGDarlehen(50000, agTilg);
@@ -1452,9 +1529,9 @@ function run() {
         if (y < 2036) {
             if (y === 2026) {
                 // 2026: Darlehen ab Mai (nur Zinsen in tilgungsfreier Anlaufzeit bis Apr 2027)
-                bd.push({ label: 'S-Förderdarlehen (Zinsen)', amt: 100000*zF/100/12, color: '#e2001a', startMon: 4 });
+                bd.push({ label: 'S-Förder/KfW (Zinsen)', amt: 100000*zF/100/12, color: '#e2001a', startMon: 4 });
                 bd.push({ label: 'Sparkassendarlehen (Zinsen)', amt: 137000*zS/100/12, color: '#1565c0', startMon: 4 });
-                bd.push({ label: 'NRW.BANK (Zinsen)', amt: 270000*zN/100/12, color: '#ef6c00', startMon: 4 });
+                bd.push({ label: 'NRW.BANK (Zinsen)', amt: 270000*zN/100/12, color: '#ef6c00', startMon: 8 }); // ab 01.09.2026
             } else if (y >= 2027) {
                 bd.push({ label: 'S-Förderdarlehen', amt: payF, color: '#e2001a', startMon: 0 });
                 bd.push({ label: 'Sparkassendarlehen', amt: payS, color: '#1565c0', startMon: 0 });
@@ -1534,6 +1611,84 @@ function run() {
     document.getElementById('db_rate_f').textContent = F(payF) + ' €';
     document.getElementById('db_rate_s').textContent = F(payS) + ' €';
     document.getElementById('db_rate_n').textContent = F(payN) + ' €';
+
+    // === KONDITIONEN-ÜBERSICHT (eine-Seiten-Übersicht) ===
+    const eF = +document.getElementById('inEF').value;
+    const eS = +document.getElementById('inES').value;
+    const eN = +document.getElementById('inEN').value;
+
+    const bspMonteSpar = bspS.length - 1;
+    const bspGesGeb = 1840;
+    const bspP1Sparrate = 426.33;
+    const bspP2Rate = 575;
+    const bspDarlSoll = 1.80; // typischer Bauspar-Darlehenszins (Phase 2)
+
+    // Mtl. Rate Phase 1 für NRW.BANK = 0 in Monaten 1-4 (vor 01.09.2026), danach payN
+    // Für Übersicht zeigen wir die "normale" Rate ab Sep 2026 (pure Zinsen) und ab Mai 2027 (volle Annuität)
+    const nrwZinsAb0926 = Math.round(270000 * zN / 100 / 12 * 100) / 100;
+
+    const ko = [
+        {
+            name: 'KfW / S-Förderdarlehen', betrag: 100000, soll: zF, eff: eF,
+            rate: payF, zP1: p1F.totI, gesamt: p1F.totI + p2F.totI,
+            note: 'Tilgungsstart Mai 2027', color: 'var(--red)'
+        },
+        {
+            name: 'Sparkasse', betrag: 137000, soll: zS, eff: eS,
+            rate: payS, zP1: p1S.totI, gesamt: p1S.totI + p2S.totI,
+            note: 'Tilgungsstart Mai 2027', color: 'var(--blue)'
+        },
+        {
+            name: 'NRW.BANK', betrag: 270000, soll: zN, eff: eN,
+            rate: payN, zP1: p1N.totI, gesamt: p1N.totI + p2N.totI,
+            note: `Zinsen ab 01.09.2026 (vorher 0 €), ab Sep ${F2(nrwZinsAb0926)} € reine Zinsen, Tilgung ab Mai 2027`,
+            color: 'var(--orange)'
+        },
+        {
+            name: 'AG-Darlehen', betrag: 50000, soll: 0, eff: 0,
+            rate: agTilg, zP1: 0, gesamt: agD.totalSteuer,
+            note: 'Zinsfrei, Kosten = Steuer auf geldwerten Vorteil (' + F2(MASSTABSZINS) + ' %)',
+            color: 'var(--teal)'
+        },
+        {
+            name: 'Bausparvertrag (Spar→Darlehen)', betrag: 115000, soll: bspDarlSoll, eff: bspDarlSoll,
+            rate: bspP1Sparrate, zP1: 0, gesamt: bspD.totI + bspGesGeb,
+            note: `Sparrate ${F2(bspP1Sparrate)} €/Mon bis 2036, danach Darlehen ${F(bspP2Rate)} €/Mon`,
+            color: 'var(--purple)'
+        }
+    ];
+
+    let koHTML = '';
+    let totBetrag = 0, totRate = 0, totZP1 = 0, totGes = 0;
+    for (const r of ko) {
+        totBetrag += r.betrag; totRate += r.rate; totZP1 += r.zP1; totGes += r.gesamt;
+        koHTML += `<tr>
+            <td style="padding:8px 10px;border-bottom:1px solid #eee;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${r.color};margin-right:8px;"></span><strong>${r.name}</strong></td>
+            <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">${F(r.betrag)} €</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">${r.soll === 0 ? '—' : F2(r.soll) + ' %'}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;color:var(--muted);">${r.eff === 0 ? '—' : F2(r.eff) + ' %'}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;"><strong>${F2(r.rate)} €</strong></td>
+            <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;color:var(--red);">${r.zP1 > 0 ? F(r.zP1) + ' €' : '—'}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;color:var(--red);"><strong>${F(r.gesamt)} €</strong></td>
+            <td style="padding:8px 10px;border-bottom:1px solid #eee;font-size:11px;color:var(--muted);">${r.note}</td>
+        </tr>`;
+    }
+    document.getElementById('db_kondtab_body').innerHTML = koHTML;
+    document.getElementById('db_kondtab_foot').innerHTML = `<tr style="background:#fafafa;font-weight:700;">
+        <td style="padding:10px;border-top:2px solid #333;">Summe</td>
+        <td style="padding:10px;border-top:2px solid #333;text-align:right;">${F(totBetrag)} €</td>
+        <td style="padding:10px;border-top:2px solid #333;"></td>
+        <td style="padding:10px;border-top:2px solid #333;"></td>
+        <td style="padding:10px;border-top:2px solid #333;text-align:right;">${F2(totRate)} €</td>
+        <td style="padding:10px;border-top:2px solid #333;text-align:right;color:var(--red);">${F(totZP1)} €</td>
+        <td style="padding:10px;border-top:2px solid #333;text-align:right;color:var(--red);">${F(totGes)} €</td>
+        <td style="padding:10px;border-top:2px solid #333;"></td>
+    </tr>`;
+
+    document.getElementById('ko_p1').textContent = F(monthlyP1) + ' €';
+    document.getElementById('ko_p2').textContent = F(monthlyP2) + ' €';
+    document.getElementById('ko_total').textContent = F(totZinsP1 + totZinsP2 + totAGSteuer + bspGesGeb) + ' €';
+    document.getElementById('ko_frei').textContent = debtFree ? '~' + debtFree.y : '>2062';
 
     // Restschuld nach ~1 Jahr (approx from trimmed data)
     const currentDebt = trimmed.length > 1 ? trimmed[1].totalDebt : 557000;
@@ -2089,6 +2244,29 @@ function showRate(year) {
 // Events
 ['inST', 'inAR', 'inAT', 'inZF', 'inZS', 'inZN'].forEach(id => document.getElementById(id).addEventListener('input', run));
 ['inBU', 'inCmp'].forEach(id => document.getElementById(id).addEventListener('change', run));
+['inEF', 'inES', 'inEN'].forEach(id => document.getElementById(id).addEventListener('input', run));
+
+// Sync slider <-> number input pairs (2-Nachkommastellen Eingabe ohne 0,05er-Raster)
+const numSync = [
+    ['inZF','inZFnum'], ['inZS','inZSnum'], ['inZN','inZNnum'],
+    ['inAR','inARnum'], ['inAT','inATnum']
+];
+numSync.forEach(([slider, num]) => {
+    const sEl = document.getElementById(slider);
+    const nEl = document.getElementById(num);
+    if (!sEl || !nEl) return;
+    sEl.addEventListener('input', () => { nEl.value = (+sEl.value).toFixed(2); });
+    nEl.addEventListener('input', () => {
+        let v = parseFloat(nEl.value);
+        if (isNaN(v)) return;
+        // Slider akzeptiert beliebige 2-Nachkomma-Werte (step=0.01); clamp auf min/max
+        const min = +sEl.min, max = +sEl.max;
+        if (v < min) v = min; if (v > max) v = max;
+        sEl.value = v;
+        run();
+    });
+});
+
 run();
 
 // ============================================================
