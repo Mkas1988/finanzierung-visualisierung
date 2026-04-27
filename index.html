@@ -1772,10 +1772,11 @@ function run() {
         const calY = startCalY + Math.floor((startCalM + i) / 12);
 
         let kfw = 0, kfwST = 0, sk = 0, nrw = 0, ag = 0, agTax = 0, bsp = 0, miete = 0;
+        const notes = [];
+
         // Miete alte Wohnung 930 €/Monat von Apr 2026 (i=0) bis Apr 2027 (i=12)
         if (i <= 12) miete = 930;
         if (i === 12) notes.push('Letzte Mietzahlung alte Wohnung');
-        const notes = [];
 
         // Bankdarlehen
         if (i === 0) {
