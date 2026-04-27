@@ -282,6 +282,7 @@ async function checkAuth(){
             <tr>
                 <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;white-space:nowrap;">Monat</th>
                 <th onclick="openLoanDetail('kfw')" title="Klick: Zinsen + Tilgung pro Monat" style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--red);cursor:pointer;text-decoration:underline;">KfW / S-Förder ▾</th>
+                <th onclick="openLoanDetail('kfw')" title="Sondertilgung S-Förderdarlehen" style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--purple);cursor:pointer;text-decoration:underline;">S-Förder Sondertilg. ▾</th>
                 <th onclick="openLoanDetail('sparkasse')" title="Klick: Zinsen + Tilgung pro Monat" style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--blue);cursor:pointer;text-decoration:underline;">Sparkasse ▾</th>
                 <th onclick="openLoanDetail('nrw')" title="Klick: Zinsen + Tilgung pro Monat" style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--orange);cursor:pointer;text-decoration:underline;">NRW.BANK ▾</th>
                 <th onclick="openLoanDetail('ag')" title="Klick: Tilgung + Steuer pro Monat" style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--teal);cursor:pointer;text-decoration:underline;">AG-Tilgung ▾</th>
@@ -1754,7 +1755,7 @@ function run() {
         const calM = (startCalM + i) % 12;
         const calY = startCalY + Math.floor((startCalM + i) / 12);
 
-        let kfw = 0, sk = 0, nrw = 0, ag = 0, agTax = 0, bsp = 0;
+        let kfw = 0, kfwST = 0, sk = 0, nrw = 0, ag = 0, agTax = 0, bsp = 0;
         const notes = [];
 
         // Bankdarlehen
@@ -1767,7 +1768,8 @@ function run() {
             const fM = findM(p1F.months, i);
             const sM = findM(p1S.months, i);
             const nM = findM(p1N.months, i);
-            kfw = (fM?.pay || 0) + (fM?.st || 0);
+            kfw = fM?.pay || 0;
+            kfwST = fM?.st || 0;
             sk  = sM?.pay || 0;
             nrw = nM?.pay || 0;
             if (i === 5) notes.push('Erste Zinszahlung aller 3 Bankdarlehen (KfW, Sparkasse, NRW.BANK)');
@@ -1809,15 +1811,17 @@ function run() {
             if (bspDM && bspDM.bal > 0) bsp = bspDarlAmt;
         }
 
-        const total = kfw + sk + nrw + ag + agTax + bsp;
+        const total = kfw + kfwST + sk + nrw + ag + agTax + bsp;
 
         // Abbruch wenn alles 0 für ein paar Monate (Tilgung komplett)
         if (i > 130 && total < 1) break;
 
+        if (kfwST > 0) notes.unshift(`Sondertilgung KfW: ${F(kfwST)} €`);
+
         // Jahres-Trenn-Header
         if (calY !== prevYear) {
             mtbody += `<tr id="mrow_${calY}" style="background:#1a1a1a;color:#fff;">
-                <td colspan="9" style="padding:6px 10px;font-weight:700;font-size:12px;letter-spacing:.4px;">${calY}</td>
+                <td colspan="10" style="padding:6px 10px;font-weight:700;font-size:12px;letter-spacing:.4px;">${calY}</td>
             </tr>`;
             yearsSeen.add(calY);
             prevYear = calY;
@@ -1833,6 +1837,7 @@ function run() {
         mtbody += `<tr style="${rowStyle}">
             <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;font-weight:500;">${monthAbbr[calM]} ${calY}</td>
             <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:right;">${fmtCell(kfw)}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:right;color:var(--purple);font-weight:${kfwST > 0 ? '700' : 'normal'};">${fmtCell(kfwST)}</td>
             <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:right;">${fmtCell(sk)}</td>
             <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:right;">${fmtCell(nrw)}</td>
             <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:right;">${fmtCell(ag)}</td>
