@@ -269,6 +269,36 @@ async function checkAuth(){
     </div>
 </div>
 
+<!-- MONATSÜBERSICHT: jede Rate, jeden Monat, mit Gesamtbelastung -->
+<div class="card" style="border-left:4px solid var(--blue);margin-bottom:16px;">
+    <h2 style="font-size:16px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;">
+        <span>Monatsübersicht — Alle Kredite, jeden Monat</span>
+        <span style="font-size:11px;color:var(--muted);font-weight:400;">Apr 2026 → Tilgungsende · Klick auf Jahr im Schnellsprung</span>
+    </h2>
+    <div id="db_monthly_jump" style="display:flex;gap:4px;flex-wrap:wrap;margin:8px 0 4px;font-size:11px;"></div>
+    <div style="overflow-x:auto;max-height:560px;overflow-y:auto;border:1px solid #eee;border-radius:8px;">
+    <table id="db_monthlytab" style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead style="position:sticky;top:0;background:#fafafa;z-index:1;box-shadow:0 1px 0 #ddd;">
+            <tr>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;white-space:nowrap;">Monat</th>
+                <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--red);">KfW / S-Förder</th>
+                <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--blue);">Sparkasse</th>
+                <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--orange);">NRW.BANK</th>
+                <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--teal);">AG-Tilgung</th>
+                <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:#b71c1c;">AG-Steuer</th>
+                <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--purple);">Bauspar</th>
+                <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;background:#fff3e0;">Gesamt</th>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;font-size:11px;color:var(--muted);">Hinweis</th>
+            </tr>
+        </thead>
+        <tbody id="db_monthlytab_body"></tbody>
+    </table>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:var(--muted);">
+        <strong>Spaltenlogik:</strong> Bei den 3 Bankdarlehen ist während der tilgungsfreien Anlaufzeit nur Zins enthalten, danach Annuität (Zins + Tilgung). NRW.BANK = 0 € bis Aug 2026 (zinsfrei). Bauspar = 426,33 € Sparrate (bis Jan 2036), danach 575 € Bauspardarlehen-Rate. AG-Steuer sinkt monatlich mit der Tilgung des AG-Darlehens.
+    </div>
+</div>
+
 <!-- Hero Metrics -->
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px;">
     <div class="dash-metric" style="border-top:4px solid var(--red);">
@@ -1689,6 +1719,126 @@ function run() {
     document.getElementById('ko_p2').textContent = F(monthlyP2) + ' €';
     document.getElementById('ko_total').textContent = F(totZinsP1 + totZinsP2 + totAGSteuer + bspGesGeb) + ' €';
     document.getElementById('ko_frei').textContent = debtFree ? '~' + debtFree.y : '>2062';
+
+    // === MONATSÜBERSICHT (jeden Monat einzeln, alle Kredite) ===
+    // i = globaler Monatsindex ab April 2026 (i=0). Phase 1: i=0..120, Phase 2: i=121..
+    const monthAbbr = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+    const startCalY = 2026, startCalM = 3; // April = Index 3
+
+    const findM = (arr, m) => arr.find(x => x.m === m);
+
+    // Bauspar Sparphase Sparrate: m=1..117 = 426.33 €
+    const bspSparMax = 117;
+    const bspSparAmt = 426.33;
+    const bspDarlAmt = 575;
+
+    let mtbody = '';
+    let prevYear = null;
+    const yearsSeen = new Set();
+    const maxIter = 480; // sicher genug bis zum Tilgungsende
+
+    for (let i = 0; i <= maxIter; i++) {
+        const calM = (startCalM + i) % 12;
+        const calY = startCalY + Math.floor((startCalM + i) / 12);
+
+        let kfw = 0, sk = 0, nrw = 0, ag = 0, agTax = 0, bsp = 0;
+        const notes = [];
+
+        // Bankdarlehen
+        if (i === 0) {
+            // April 2026: nur AG aktiv (Auszahlung der Bankdarlehen erst Mai 2026)
+            notes.push('Auszahlung Bankdarlehen + Bauspar-Beginn folgen 05/2026');
+        }
+
+        if (i >= 1 && i <= 120) {
+            const fM = findM(p1F.months, i);
+            const sM = findM(p1S.months, i);
+            const nM = findM(p1N.months, i);
+            kfw = (fM?.pay || 0) + (fM?.st || 0);
+            sk  = sM?.pay || 0;
+            nrw = nM?.pay || 0;
+            if (i === 1) notes.push('Erste Zinszahlung KfW + Sparkasse');
+            if (i === 5) notes.push('NRW.BANK: erste Zinszahlung (vorher zinsfrei)');
+            if (i === 13) notes.push('Tilgungsstart aller 3 Bankdarlehen');
+        } else if (i > 120) {
+            const j = i - 120;
+            const fM = findM(p2F.months, j);
+            const sM = findM(p2S.months, j);
+            const nM = findM(p2N.months, j);
+            kfw = fM && fM.bal !== undefined ? (fM.pay || 0) : 0;
+            sk  = sM && sM.bal !== undefined ? (sM.pay || 0) : 0;
+            nrw = nM && nM.bal !== undefined ? (nM.pay || 0) : 0;
+            if (i === 121) notes.push('Phase 2 Start: Anschlussfinanzierung + Bauspardarlehen');
+        }
+
+        // AG-Darlehen ab April 2026 (i=0)
+        const agM = findM(agD.months, i);
+        if (agM && agM.bal !== undefined && i >= 1) {
+            // AG zahlt monatlich; tilgung beginnt direkt im ersten Monat
+            const prevAg = findM(agD.months, i - 1);
+            if (prevAg && prevAg.bal > 0) {
+                ag = agTilg;
+                agTax = agM.steuer || 0;
+                if (agM.bal === 0 && prevAg.bal > 0) notes.push('AG-Darlehen abbezahlt');
+            }
+        } else if (i === 0) {
+            // April 2026 ist Auszahlungsmonat des AG; erste Tilgung typischerweise Mai
+            // Kein cashflow im April
+        }
+
+        // Bauspar
+        if (i >= 1 && i <= bspSparMax) {
+            bsp = bspSparAmt;
+            if (i === 1) notes.push('Bauspar-Sparphase startet');
+            if (i === bspSparMax) notes.push('Bauspar-Sparphase endet (Zuteilungsreife)');
+        } else if (i > 120) {
+            const bspDM = bspD.months[i - 120];
+            if (bspDM && bspDM.bal > 0) bsp = bspDarlAmt;
+        }
+
+        const total = kfw + sk + nrw + ag + agTax + bsp;
+
+        // Abbruch wenn alles 0 für ein paar Monate (Tilgung komplett)
+        if (i > 130 && total < 1) break;
+
+        // Jahres-Trenn-Header
+        if (calY !== prevYear) {
+            mtbody += `<tr id="mrow_${calY}" style="background:#1a1a1a;color:#fff;">
+                <td colspan="9" style="padding:6px 10px;font-weight:700;font-size:12px;letter-spacing:.4px;">${calY}</td>
+            </tr>`;
+            yearsSeen.add(calY);
+            prevYear = calY;
+        }
+
+        // Hervorhebung von Schlüssel-Monaten
+        const isKey = notes.length > 0;
+        const rowStyle = isKey ? 'background:#fff8e1;' : '';
+        const noteHTML = notes.length ? `<span style="color:#e65100;font-weight:600;font-size:11px;">${notes.join(' · ')}</span>` : '';
+
+        const fmtCell = v => v > 0.5 ? F2(v) + ' €' : '<span style="color:#ddd;">–</span>';
+
+        mtbody += `<tr style="${rowStyle}">
+            <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;white-space:nowrap;font-weight:500;">${monthAbbr[calM]} ${calY}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:right;">${fmtCell(kfw)}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:right;">${fmtCell(sk)}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:right;">${fmtCell(nrw)}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:right;">${fmtCell(ag)}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:right;">${fmtCell(agTax)}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:right;">${fmtCell(bsp)}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:right;background:#fff3e0;font-weight:700;">${F2(total)} €</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;">${noteHTML}</td>
+        </tr>`;
+    }
+    document.getElementById('db_monthlytab_body').innerHTML = mtbody;
+
+    // Schnellsprung: Jahre als klickbare Pills
+    const jumpEl = document.getElementById('db_monthly_jump');
+    if (jumpEl) {
+        const yearsArr = Array.from(yearsSeen).sort();
+        jumpEl.innerHTML = yearsArr.map(y =>
+            `<a href="#mrow_${y}" onclick="event.preventDefault(); document.getElementById('mrow_${y}').scrollIntoView({behavior:'smooth',block:'start'}); return false;" style="padding:3px 8px;background:#eee;border-radius:10px;text-decoration:none;color:#333;cursor:pointer;">${y}</a>`
+        ).join('');
+    }
 
     // Restschuld nach ~1 Jahr (approx from trimmed data)
     const currentDebt = trimmed.length > 1 ? trimmed[1].totalDebt : 557000;
