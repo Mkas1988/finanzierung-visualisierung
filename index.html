@@ -264,8 +264,8 @@ async function checkAuth(){
     </div>
     <div style="margin-top:10px;font-size:11px;color:var(--muted);line-height:1.5;">
         <strong>Lesehilfe:</strong> Sollzins = vereinbarter Nominalzins. Effektivzins = Gesamtkosten p.a. inkl. Bearbeitung/Gebühren (Vergleichswert).
-        NRW.BANK: 4 Monate zinsfreie Anlaufzeit (Mai–Aug 2026), erste Zinszahlung 01.09.2026.
-        Tilgungsstart: S-Förder/KfW + Sparkasse Mai 2027, NRW.BANK Mai 2027. AG-Darlehen tilgt sofort ab April 2026 (zinsfrei, nur geldwerter Vorteil als Steuer).
+        <strong>Alle 3 Bankdarlehen (KfW, Sparkasse, NRW.BANK):</strong> 4 Monate zinsfreie Anlaufzeit (Mai–Aug 2026), erste Zinszahlung 01.09.2026.
+        Tilgungsstart: KfW + Sparkasse April 2027, NRW.BANK Mai 2027. AG-Darlehen tilgt sofort ab April 2026 (zinsfrei, nur geldwerter Vorteil als Steuer).
     </div>
 </div>
 
@@ -281,12 +281,12 @@ async function checkAuth(){
         <thead style="position:sticky;top:0;background:#fafafa;z-index:1;box-shadow:0 1px 0 #ddd;">
             <tr>
                 <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;white-space:nowrap;">Monat</th>
-                <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--red);">KfW / S-Förder</th>
-                <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--blue);">Sparkasse</th>
-                <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--orange);">NRW.BANK</th>
-                <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--teal);">AG-Tilgung</th>
-                <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:#b71c1c;">AG-Steuer</th>
-                <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--purple);">Bauspar</th>
+                <th onclick="openLoanDetail('kfw')" title="Klick: Zinsen + Tilgung pro Monat" style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--red);cursor:pointer;text-decoration:underline;">KfW / S-Förder ▾</th>
+                <th onclick="openLoanDetail('sparkasse')" title="Klick: Zinsen + Tilgung pro Monat" style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--blue);cursor:pointer;text-decoration:underline;">Sparkasse ▾</th>
+                <th onclick="openLoanDetail('nrw')" title="Klick: Zinsen + Tilgung pro Monat" style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--orange);cursor:pointer;text-decoration:underline;">NRW.BANK ▾</th>
+                <th onclick="openLoanDetail('ag')" title="Klick: Tilgung + Steuer pro Monat" style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--teal);cursor:pointer;text-decoration:underline;">AG-Tilgung ▾</th>
+                <th onclick="openLoanDetail('ag')" title="Klick: Tilgung + Steuer pro Monat" style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:#b71c1c;cursor:pointer;text-decoration:underline;">AG-Steuer ▾</th>
+                <th onclick="openLoanDetail('bauspar')" title="Klick: Spar/Darlehensphase pro Monat" style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--purple);cursor:pointer;text-decoration:underline;">Bauspar ▾</th>
                 <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;background:#fff3e0;">Gesamt</th>
                 <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;font-size:11px;color:var(--muted);">Hinweis</th>
             </tr>
@@ -295,7 +295,7 @@ async function checkAuth(){
     </table>
     </div>
     <div style="margin-top:8px;font-size:11px;color:var(--muted);">
-        <strong>Spaltenlogik:</strong> Bei den 3 Bankdarlehen ist während der tilgungsfreien Anlaufzeit nur Zins enthalten, danach Annuität (Zins + Tilgung). NRW.BANK = 0 € bis Aug 2026 (zinsfrei). Bauspar = 426,33 € Sparrate (bis Jan 2036), danach 575 € Bauspardarlehen-Rate. AG-Steuer sinkt monatlich mit der Tilgung des AG-Darlehens.
+        <strong>Spaltenlogik:</strong> Alle 3 Bankdarlehen (KfW, Sparkasse, NRW.BANK) = 0 € bis Aug 2026 (zinsfreie Anlaufzeit). Ab Sep 2026 nur Zinszahlungen, ab Tilgungsstart (Apr/Mai 2027) volle Annuität (Zins + Tilgung). Bauspar = 426,33 € Sparrate (bis Jan 2036), danach 575 € Bauspardarlehen-Rate. AG-Steuer sinkt monatlich mit der Tilgung des AG-Darlehens.
     </div>
 </div>
 
@@ -459,9 +459,14 @@ async function checkAuth(){
             <div class="tl-val">627.000 €</div>
         </div>
         <div class="dash-tl-item">
+            <div class="tl-year">09/2026</div>
+            <div class="tl-label">Erste Zinszahlung Bankdarlehen</div>
+            <div class="tl-val" style="color:var(--orange);">KfW + Sparkasse + NRW</div>
+        </div>
+        <div class="dash-tl-item">
             <div class="tl-year">2027</div>
-            <div class="tl-label">Tilgungsstart S-Förder</div>
-            <div class="tl-val">Tilgung beginnt</div>
+            <div class="tl-label">Tilgungsstart Bankdarlehen</div>
+            <div class="tl-val">Apr (KfW/Sk) · Mai (NRW)</div>
         </div>
         <div class="dash-tl-item">
             <div class="tl-year">2035</div>
@@ -1468,10 +1473,10 @@ function run() {
     const payF = Math.round(100000 * (zF + atF) / 100 / 12 * 100) / 100;
     const payS = Math.round(137000 * (zS + atS) / 100 / 12 * 100) / 100;
     const payN = Math.round(270000 * (zN + atN) / 100 / 12 * 100) / 100;
-    // NRW.BANK: Zinsen erst ab 01.09.2026 (Monat 5, da Monat 0 = April 2026, Monat 1 = Mai)
-    const p1F  = phase1(100000, zF, payF, 12, stVal);
-    const p1F0 = phase1(100000, zF, payF, 12, 0);
-    const p1S  = phase1(137000, zS, payS, 12, 0);
+    // Alle 3 Bankdarlehen: Zinsen erst ab 01.09.2026 (Monat 5, da Monat 0 = April 2026, Monat 1 = Mai)
+    const p1F  = phase1(100000, zF, payF, 12, stVal, 5);
+    const p1F0 = phase1(100000, zF, payF, 12, 0, 5);
+    const p1S  = phase1(137000, zS, payS, 12, 0, 5);
     const p1N  = phase1(270000, zN, payN, 13, 0, 5);
 
     // AG-Darlehen
@@ -1559,9 +1564,10 @@ function run() {
         if (y < 2036) {
             if (y === 2026) {
                 // 2026: Darlehen ab Mai (nur Zinsen in tilgungsfreier Anlaufzeit bis Apr 2027)
-                bd.push({ label: 'S-Förder/KfW (Zinsen)', amt: 100000*zF/100/12, color: '#e2001a', startMon: 4 });
-                bd.push({ label: 'Sparkassendarlehen (Zinsen)', amt: 137000*zS/100/12, color: '#1565c0', startMon: 4 });
-                bd.push({ label: 'NRW.BANK (Zinsen)', amt: 270000*zN/100/12, color: '#ef6c00', startMon: 8 }); // ab 01.09.2026
+                // Alle 3 Bankdarlehen: Zinsen ab 01.09.2026 (startMon=8 in 2026)
+                bd.push({ label: 'S-Förder/KfW (Zinsen)', amt: 100000*zF/100/12, color: '#e2001a', startMon: 8 });
+                bd.push({ label: 'Sparkassendarlehen (Zinsen)', amt: 137000*zS/100/12, color: '#1565c0', startMon: 8 });
+                bd.push({ label: 'NRW.BANK (Zinsen)', amt: 270000*zN/100/12, color: '#ef6c00', startMon: 8 });
             } else if (y >= 2027) {
                 bd.push({ label: 'S-Förderdarlehen', amt: payF, color: '#e2001a', startMon: 0 });
                 bd.push({ label: 'Sparkassendarlehen', amt: payS, color: '#1565c0', startMon: 0 });
@@ -1659,28 +1665,35 @@ function run() {
 
     const ko = [
         {
+            key: 'kfw',
             name: 'KfW / S-Förderdarlehen', betrag: 100000, soll: zF, eff: eF,
             rate: payF, zP1: p1F.totI, gesamt: p1F.totI + p2F.totI,
-            note: 'Tilgungsstart Mai 2027', color: 'var(--red)'
+            note: `Zinsen ab 01.09.2026 · Tilgungsstart Apr 2027 · ab Sep ${F2(100000*zF/100/12)} € reine Zinsen`,
+            color: 'var(--red)'
         },
         {
+            key: 'sparkasse',
             name: 'Sparkasse', betrag: 137000, soll: zS, eff: eS,
             rate: payS, zP1: p1S.totI, gesamt: p1S.totI + p2S.totI,
-            note: 'Tilgungsstart Mai 2027', color: 'var(--blue)'
+            note: `Zinsen ab 01.09.2026 · Tilgungsstart Apr 2027 · ab Sep ${F2(137000*zS/100/12)} € reine Zinsen`,
+            color: 'var(--blue)'
         },
         {
+            key: 'nrw',
             name: 'NRW.BANK', betrag: 270000, soll: zN, eff: eN,
             rate: payN, zP1: p1N.totI, gesamt: p1N.totI + p2N.totI,
-            note: `Zinsen ab 01.09.2026 (vorher 0 €), ab Sep ${F2(nrwZinsAb0926)} € reine Zinsen, Tilgung ab Mai 2027`,
+            note: `Zinsen ab 01.09.2026 · Tilgungsstart Mai 2027 · ab Sep ${F2(nrwZinsAb0926)} € reine Zinsen`,
             color: 'var(--orange)'
         },
         {
+            key: 'ag',
             name: 'AG-Darlehen', betrag: 50000, soll: 0, eff: 0,
             rate: agTilg, zP1: 0, gesamt: agD.totalSteuer,
             note: 'Zinsfrei, Kosten = Steuer auf geldwerten Vorteil (' + F2(MASSTABSZINS) + ' %)',
             color: 'var(--teal)'
         },
         {
+            key: 'bauspar',
             name: 'Bausparvertrag (Spar→Darlehen)', betrag: 115000, soll: bspDarlSoll, eff: bspDarlSoll,
             rate: bspP1Sparrate, zP1: 0, gesamt: bspD.totI + bspGesGeb,
             note: `Sparrate ${F2(bspP1Sparrate)} €/Mon bis 2036, danach Darlehen ${F(bspP2Rate)} €/Mon`,
@@ -1692,8 +1705,8 @@ function run() {
     let totBetrag = 0, totRate = 0, totZP1 = 0, totGes = 0;
     for (const r of ko) {
         totBetrag += r.betrag; totRate += r.rate; totZP1 += r.zP1; totGes += r.gesamt;
-        koHTML += `<tr>
-            <td style="padding:8px 10px;border-bottom:1px solid #eee;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${r.color};margin-right:8px;"></span><strong>${r.name}</strong></td>
+        koHTML += `<tr onclick="openLoanDetail('${r.key}')" title="Klick: Zinsen + Tilgung pro Monat" style="cursor:pointer;" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background=''">
+            <td style="padding:8px 10px;border-bottom:1px solid #eee;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${r.color};margin-right:8px;"></span><strong>${r.name}</strong> <span style="color:var(--muted);font-size:11px;">▾</span></td>
             <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">${F(r.betrag)} €</td>
             <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">${r.soll === 0 ? '—' : F2(r.soll) + ' %'}</td>
             <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;color:var(--muted);">${r.eff === 0 ? '—' : F2(r.eff) + ' %'}</td>
@@ -1757,9 +1770,9 @@ function run() {
             kfw = (fM?.pay || 0) + (fM?.st || 0);
             sk  = sM?.pay || 0;
             nrw = nM?.pay || 0;
-            if (i === 1) notes.push('Erste Zinszahlung KfW + Sparkasse');
-            if (i === 5) notes.push('NRW.BANK: erste Zinszahlung (vorher zinsfrei)');
-            if (i === 13) notes.push('Tilgungsstart aller 3 Bankdarlehen');
+            if (i === 5) notes.push('Erste Zinszahlung aller 3 Bankdarlehen (KfW, Sparkasse, NRW.BANK)');
+            if (i === 12) notes.push('Tilgungsstart KfW + Sparkasse');
+            if (i === 13) notes.push('Tilgungsstart NRW.BANK');
         } else if (i > 120) {
             const j = i - 120;
             const fM = findM(p2F.months, j);
@@ -1830,6 +1843,15 @@ function run() {
         </tr>`;
     }
     document.getElementById('db_monthlytab_body').innerHTML = mtbody;
+
+    // Loan-Daten für Detail-Drilldown bereitstellen (Klick auf Spaltenkopf)
+    window._loanDetail = {
+        kfw:       { name: 'KfW / S-Förderdarlehen', color: '#e2001a', betrag: 100000, soll: zF, eff: eF, p1: p1F, p2: p2F, hasST: true },
+        sparkasse: { name: 'Sparkasse',              color: '#1565c0', betrag: 137000, soll: zS, eff: eS, p1: p1S, p2: p2S, hasST: false },
+        nrw:       { name: 'NRW.BANK',               color: '#ef6c00', betrag: 270000, soll: zN, eff: eN, p1: p1N, p2: p2N, hasST: false, interestStartM: 5 },
+        ag:        { name: 'AG-Darlehen (zinsfrei)', color: '#00796b', betrag: 50000,  soll: 0,  eff: 0,  ag: agD, agTilg: agTilg },
+        bauspar:   { name: 'Bausparvertrag',         color: '#7b1fa2', betrag: 115000, soll: bspDarlSoll, eff: bspDarlSoll, sparPhase: bspS, darlPhase: bspD, sparAmt: bspSparAmt, sparMax: bspSparMax, darlAmt: bspDarlAmt }
+    };
 
     // Schnellsprung: Jahre als klickbare Pills
     const jumpEl = document.getElementById('db_monthly_jump');
@@ -2301,6 +2323,205 @@ const overlayContent = document.getElementById('overlayContent');
 document.getElementById('overlayClose').addEventListener('click', () => overlay.classList.remove('open'));
 overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') overlay.classList.remove('open'); });
+
+// === DRILLDOWN: Pro Finanzierung Monat-für-Monat Zinsen + Tilgung ===
+function openLoanDetail(key) {
+    const L = window._loanDetail?.[key];
+    if (!L) return;
+    const monthAbbr = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+    const startCalY = 2026, startCalM = 3; // Apr 2026 = i=0
+
+    const fmtCell = v => v > 0.005 ? F2(v) + ' €' : '<span style="color:#ddd;">–</span>';
+    let h = `<div class="overlay-title" style="display:flex;align-items:center;gap:10px;">
+        <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${L.color};"></span>
+        ${L.name}
+    </div>`;
+    h += `<div class="overlay-sub">Monat-für-Monat: Zinsen, Tilgung und Restschuld</div>`;
+
+    // Loan-spezifische Summary-Boxen
+    let summary = '';
+    if (key === 'kfw' || key === 'sparkasse' || key === 'nrw') {
+        const totZinsP1 = L.p1.totI;
+        const totTilgP1 = L.p1.totT + (L.p1.totST || 0);
+        const totZinsP2 = L.p2.totI;
+        const restZB = L.p1.rest;
+        summary = `<div class="loan-summary" style="margin-bottom:14px;">
+            <div class="ls-item"><div class="ls-label">Darlehensbetrag</div><div class="ls-val">${F(L.betrag)} €</div></div>
+            <div class="ls-item"><div class="ls-label">Sollzins</div><div class="ls-val">${F2(L.soll)} %</div></div>
+            <div class="ls-item"><div class="ls-label">Effektivzins</div><div class="ls-val" style="color:var(--muted)">${F2(L.eff)} %</div></div>
+            <div class="ls-item"><div class="ls-label">Zinsen Phase 1</div><div class="ls-val" style="color:var(--red)">${F(totZinsP1)} €</div></div>
+            <div class="ls-item"><div class="ls-label">Tilgung Phase 1</div><div class="ls-val" style="color:var(--green)">${F(totTilgP1)} €</div></div>
+            <div class="ls-item"><div class="ls-label">Restschuld 2036</div><div class="ls-val" style="color:${L.color}">${F(restZB)} €</div></div>
+            <div class="ls-item"><div class="ls-label">Zinsen Phase 2</div><div class="ls-val" style="color:var(--red)">${F(totZinsP2)} €</div></div>
+            <div class="ls-item"><div class="ls-label">Gesamtzinsen</div><div class="ls-val" style="color:var(--red)"><strong>${F(totZinsP1 + totZinsP2)} €</strong></div></div>
+        </div>`;
+    } else if (key === 'ag') {
+        summary = `<div class="loan-summary" style="margin-bottom:14px;">
+            <div class="ls-item"><div class="ls-label">Darlehensbetrag</div><div class="ls-val">${F(L.betrag)} €</div></div>
+            <div class="ls-item"><div class="ls-label">Sollzins</div><div class="ls-val" style="color:var(--green)">0,00 %</div></div>
+            <div class="ls-item"><div class="ls-label">Mtl. Tilgung</div><div class="ls-val">${F2(L.agTilg)} €</div></div>
+            <div class="ls-item"><div class="ls-label">Steuer gesamt</div><div class="ls-val" style="color:#b71c1c"><strong>${F(L.ag.totalSteuer)} €</strong></div></div>
+            <div class="ls-item"><div class="ls-label">Abbezahlt nach</div><div class="ls-val">${L.ag.months.length - 1} Mon.</div></div>
+        </div>`;
+    } else if (key === 'bauspar') {
+        summary = `<div class="loan-summary" style="margin-bottom:14px;">
+            <div class="ls-item"><div class="ls-label">Bausparsumme</div><div class="ls-val">${F(L.betrag)} €</div></div>
+            <div class="ls-item"><div class="ls-label">Sparrate (bis Jan 2036)</div><div class="ls-val">${F2(L.sparAmt)} €/Mon</div></div>
+            <div class="ls-item"><div class="ls-label">Darlehensrate (ab Mai 2036)</div><div class="ls-val">${F2(L.darlAmt)} €/Mon</div></div>
+            <div class="ls-item"><div class="ls-label">Bauspar-Darl. Sollzins</div><div class="ls-val">${F2(L.soll)} %</div></div>
+            <div class="ls-item"><div class="ls-label">Zinsen Bauspardarl.</div><div class="ls-val" style="color:var(--red)">${F(L.darlPhase.totI)} €</div></div>
+        </div>`;
+    }
+    h += summary;
+
+    // Tabelle: Monat-für-Monat
+    h += `<div class="scroll-table" style="max-height:480px;overflow-y:auto;">
+        <table><thead style="position:sticky;top:0;background:#fafafa;z-index:1;"><tr>
+            <th>Monat</th>
+            <th class="r">Restschuld vorher</th>`;
+    if (key === 'ag') {
+        h += `<th class="r">Tilgung</th><th class="r">Geldw. Vorteil</th><th class="r">Steuer</th>`;
+    } else if (key === 'bauspar') {
+        h += `<th class="r">Sparrate / Rate</th><th class="r">Zins</th><th class="r">Tilgung</th>`;
+    } else {
+        h += `<th class="r">Zinsanteil</th><th class="r">Tilgungsanteil</th>`;
+        if (L.hasST) h += `<th class="r">Sondertilgung</th>`;
+        h += `<th class="r">Mtl. Rate</th>`;
+    }
+    h += `<th class="r">Restschuld nachher</th><th>Phase</th></tr></thead><tbody>`;
+
+    let rows = '';
+    let prevYear = null;
+
+    if (key === 'kfw' || key === 'sparkasse' || key === 'nrw') {
+        // Phase 1 (i=1..120)
+        for (let i = 1; i <= 120; i++) {
+            const calM = (startCalM + i) % 12;
+            const calY = startCalY + Math.floor((startCalM + i) / 12);
+            const m = L.p1.months.find(x => x.m === i);
+            if (!m) continue;
+            const prev = L.p1.months.find(x => x.m === i - 1);
+            const rest0 = prev ? prev.bal : L.betrag;
+            const zins = m.interest || 0;
+            const tilg = m.tilg || 0;
+            const st = m.st || 0;
+            const rate = (m.pay || 0) + st;
+
+            if (calY !== prevYear) {
+                rows += `<tr style="background:#1a1a1a;color:#fff;"><td colspan="${L.hasST ? 7 : 6}" style="padding:5px 10px;font-weight:700;">${calY}</td></tr>`;
+                prevYear = calY;
+            }
+            const phaseLabel = i < 5 ? 'zinsfrei' : (i < 12 ? 'nur Zins' : 'Annuität');
+            const isKey = (i === 5 || i === 12 || i === 13);
+            rows += `<tr style="${isKey ? 'background:#fff8e1;' : ''}">
+                <td style="white-space:nowrap;">${monthAbbr[calM]} ${calY}</td>
+                <td class="r">${F2(rest0)} €</td>
+                <td class="r" style="color:var(--red)">${fmtCell(zins)}</td>
+                <td class="r" style="color:var(--green)">${fmtCell(tilg)}</td>
+                ${L.hasST ? `<td class="r" style="color:var(--purple)">${fmtCell(st)}</td>` : ''}
+                <td class="r"><strong>${fmtCell(rate)}</strong></td>
+                <td class="r">${F2(m.bal)} €</td>
+                <td style="font-size:11px;color:var(--muted)">${phaseLabel}</td>
+            </tr>`;
+        }
+        // Phase 2 (i=121..)
+        prevYear = null;
+        for (let j = 1; j < L.p2.months.length; j++) {
+            const m = L.p2.months[j];
+            const i = 120 + j;
+            const calM = (startCalM + i) % 12;
+            const calY = startCalY + Math.floor((startCalM + i) / 12);
+            const prev = L.p2.months[j - 1];
+            const rest0 = prev ? prev.bal : 0;
+            if (rest0 < 1 && (m.pay || 0) < 1) break;
+
+            if (calY !== prevYear) {
+                rows += `<tr style="background:#1a1a1a;color:#fff;"><td colspan="${L.hasST ? 7 : 6}" style="padding:5px 10px;font-weight:700;">${calY}</td></tr>`;
+                prevYear = calY;
+            }
+            rows += `<tr>
+                <td style="white-space:nowrap;">${monthAbbr[calM]} ${calY}</td>
+                <td class="r">${F2(rest0)} €</td>
+                <td class="r" style="color:var(--red)">${fmtCell(m.interest)}</td>
+                <td class="r" style="color:var(--green)">${fmtCell(m.tilg)}</td>
+                ${L.hasST ? `<td class="r" style="color:var(--purple)">–</td>` : ''}
+                <td class="r"><strong>${fmtCell(m.pay)}</strong></td>
+                <td class="r">${F2(m.bal)} €</td>
+                <td style="font-size:11px;color:var(--muted)">Phase 2</td>
+            </tr>`;
+        }
+    } else if (key === 'ag') {
+        for (let i = 1; i < L.ag.months.length; i++) {
+            const m = L.ag.months[i];
+            const prev = L.ag.months[i - 1];
+            const calM = (startCalM + i) % 12;
+            const calY = startCalY + Math.floor((startCalM + i) / 12);
+            if (calY !== prevYear) {
+                rows += `<tr style="background:#1a1a1a;color:#fff;"><td colspan="6" style="padding:5px 10px;font-weight:700;">${calY}</td></tr>`;
+                prevYear = calY;
+            }
+            rows += `<tr>
+                <td style="white-space:nowrap;">${monthAbbr[calM]} ${calY}</td>
+                <td class="r">${F2(prev.bal)} €</td>
+                <td class="r" style="color:var(--green)">${fmtCell(L.agTilg)}</td>
+                <td class="r" style="color:var(--muted)">${fmtCell(m.zinsvorteil)}</td>
+                <td class="r" style="color:#b71c1c">${fmtCell(m.steuer)}</td>
+                <td class="r">${F2(m.bal)} €</td>
+                <td style="font-size:11px;color:var(--muted)">${m.bal === 0 ? 'abbezahlt' : 'aktiv'}</td>
+            </tr>`;
+        }
+    } else if (key === 'bauspar') {
+        // Sparphase i=1..117
+        for (let i = 1; i <= L.sparMax; i++) {
+            const m = L.sparPhase.find(x => x.m === i);
+            const prev = L.sparPhase.find(x => x.m === i - 1);
+            if (!m) continue;
+            const calM = (startCalM + i) % 12;
+            const calY = startCalY + Math.floor((startCalM + i) / 12);
+            if (calY !== prevYear) {
+                rows += `<tr style="background:#1a1a1a;color:#fff;"><td colspan="6" style="padding:5px 10px;font-weight:700;">${calY} — Sparphase</td></tr>`;
+                prevYear = calY;
+            }
+            rows += `<tr>
+                <td style="white-space:nowrap;">${monthAbbr[calM]} ${calY}</td>
+                <td class="r">Guthaben: ${F2(prev?.bal || 0)} €</td>
+                <td class="r" style="color:var(--green)"><strong>${F2(L.sparAmt)} €</strong></td>
+                <td class="r" style="color:var(--muted)">–</td>
+                <td class="r" style="color:var(--muted)">–</td>
+                <td class="r" style="color:var(--green)">Guthaben: ${F2(m.bal)} €</td>
+                <td style="font-size:11px;color:var(--muted)">Sparphase</td>
+            </tr>`;
+        }
+        // Darlehensphase i=121..
+        prevYear = null;
+        for (let j = 1; j < L.darlPhase.months.length; j++) {
+            const m = L.darlPhase.months[j];
+            const prev = L.darlPhase.months[j - 1];
+            const i = 120 + j;
+            const calM = (startCalM + i) % 12;
+            const calY = startCalY + Math.floor((startCalM + i) / 12);
+            if (m.bal === undefined) break;
+            if (calY !== prevYear) {
+                rows += `<tr style="background:#1a1a1a;color:#fff;"><td colspan="6" style="padding:5px 10px;font-weight:700;">${calY} — Darlehensphase</td></tr>`;
+                prevYear = calY;
+            }
+            rows += `<tr>
+                <td style="white-space:nowrap;">${monthAbbr[calM]} ${calY}</td>
+                <td class="r">${F2(prev.bal)} €</td>
+                <td class="r"><strong>${fmtCell(m.pay)}</strong></td>
+                <td class="r" style="color:var(--red)">${fmtCell(m.interest)}</td>
+                <td class="r" style="color:var(--green)">${fmtCell(m.tilg)}</td>
+                <td class="r">${F2(m.bal)} €</td>
+                <td style="font-size:11px;color:var(--muted)">Darlehensphase</td>
+            </tr>`;
+            if (m.bal < 1) break;
+        }
+    }
+
+    h += rows + `</tbody></table></div>`;
+    overlayContent.innerHTML = h;
+    overlay.classList.add('open');
+}
 
 function showRate(year) {
     const d = window._rateData?.find(r => r.y === year);
