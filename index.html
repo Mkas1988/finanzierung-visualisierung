@@ -288,6 +288,7 @@ async function checkAuth(){
                 <th onclick="openLoanDetail('ag')" title="Klick: Tilgung + Steuer pro Monat" style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--teal);cursor:pointer;text-decoration:underline;">AG-Tilgung ▾</th>
                 <th onclick="openLoanDetail('ag')" title="Klick: Tilgung + Steuer pro Monat" style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:#b71c1c;cursor:pointer;text-decoration:underline;">AG-Steuer ▾</th>
                 <th onclick="openLoanDetail('bauspar')" title="Klick: Spar/Darlehensphase pro Monat" style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:var(--purple);cursor:pointer;text-decoration:underline;">Bauspar ▾</th>
+                <th title="Miete alte Wohnung — endet April 2027" style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;color:#5d4037;">Miete alt</th>
                 <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;background:#fff3e0;">Gesamt</th>
                 <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;font-size:11px;color:var(--muted);">Hinweis</th>
             </tr>
@@ -296,7 +297,7 @@ async function checkAuth(){
     </table>
     </div>
     <div style="margin-top:8px;font-size:11px;color:var(--muted);">
-        <strong>Spaltenlogik:</strong> Alle 3 Bankdarlehen (KfW, Sparkasse, NRW.BANK) = 0 € bis Aug 2026 (zinsfreie Anlaufzeit). Ab Sep 2026 nur Zinszahlungen, ab Tilgungsstart (Apr/Mai 2027) volle Annuität (Zins + Tilgung). Bauspar = 426,33 € Sparrate (bis Jan 2036), danach 575 € Bauspardarlehen-Rate. AG-Steuer sinkt monatlich mit der Tilgung des AG-Darlehens.
+        <strong>Spaltenlogik:</strong> Alle 3 Bankdarlehen (KfW, Sparkasse, NRW.BANK) = 0 € bis Aug 2026 (zinsfreie Anlaufzeit). Ab Sep 2026 nur Zinszahlungen, ab Tilgungsstart (Apr/Mai 2027) volle Annuität (Zins + Tilgung). Bauspar = 426,33 € Sparrate (bis Jan 2036), danach 575 € Bauspardarlehen-Rate. AG-Steuer sinkt monatlich mit der Tilgung des AG-Darlehens. <strong>Miete alt:</strong> 930 €/Mon Doppelbelastung Apr 2026–Apr 2027 (13 Monate, 12.090 € gesamt) — danach entfällt sie.
     </div>
 </div>
 
@@ -1699,16 +1700,31 @@ function run() {
             rate: bspP1Sparrate, zP1: 0, gesamt: bspD.totI + bspGesGeb,
             note: `Sparrate ${F2(bspP1Sparrate)} €/Mon bis 2036, danach Darlehen ${F(bspP2Rate)} €/Mon`,
             color: 'var(--purple)'
+        },
+        {
+            key: null,
+            name: 'Miete alte Wohnung (Doppelbelastung)', betrag: 0, soll: 0, eff: 0,
+            rate: 930, zP1: 0, gesamt: 930 * 13,
+            note: `930 €/Mon · läuft Apr 2026 → Apr 2027 (13 Monate, gesamt 12.090 €)`,
+            color: '#5d4037'
         }
     ];
 
     let koHTML = '';
     let totBetrag = 0, totRate = 0, totZP1 = 0, totGes = 0;
     for (const r of ko) {
-        totBetrag += r.betrag; totRate += r.rate; totZP1 += r.zP1; totGes += r.gesamt;
-        koHTML += `<tr onclick="openLoanDetail('${r.key}')" title="Klick: Zinsen + Tilgung pro Monat" style="cursor:pointer;" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background=''">
-            <td style="padding:8px 10px;border-bottom:1px solid #eee;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${r.color};margin-right:8px;"></span><strong>${r.name}</strong> <span style="color:var(--muted);font-size:11px;">▾</span></td>
-            <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">${F(r.betrag)} €</td>
+        // Miete (kein Kredit) nur in Gesamtkosten einrechnen, nicht in Mtl.-Rate-Summe (endet 04/2027)
+        const isLoan = !!r.key;
+        if (isLoan) { totBetrag += r.betrag; totRate += r.rate; totZP1 += r.zP1; }
+        totGes += r.gesamt;
+        const clickable = !!r.key;
+        const rowOpen = clickable
+            ? `<tr onclick="openLoanDetail('${r.key}')" title="Klick: Zinsen + Tilgung pro Monat" style="cursor:pointer;" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background=''">`
+            : `<tr style="background:#fafafa;">`;
+        const arrow = clickable ? ` <span style="color:var(--muted);font-size:11px;">▾</span>` : '';
+        koHTML += `${rowOpen}
+            <td style="padding:8px 10px;border-bottom:1px solid #eee;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${r.color};margin-right:8px;"></span><strong>${r.name}</strong>${arrow}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">${r.betrag > 0 ? F(r.betrag) + ' €' : '—'}</td>
             <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">${r.soll === 0 ? '—' : F2(r.soll) + ' %'}</td>
             <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;color:var(--muted);">${r.eff === 0 ? '—' : F2(r.eff) + ' %'}</td>
             <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;"><strong>${F2(r.rate)} €</strong></td>
@@ -1755,7 +1771,10 @@ function run() {
         const calM = (startCalM + i) % 12;
         const calY = startCalY + Math.floor((startCalM + i) / 12);
 
-        let kfw = 0, kfwST = 0, sk = 0, nrw = 0, ag = 0, agTax = 0, bsp = 0;
+        let kfw = 0, kfwST = 0, sk = 0, nrw = 0, ag = 0, agTax = 0, bsp = 0, miete = 0;
+        // Miete alte Wohnung 930 €/Monat von Apr 2026 (i=0) bis Apr 2027 (i=12)
+        if (i <= 12) miete = 930;
+        if (i === 12) notes.push('Letzte Mietzahlung alte Wohnung');
         const notes = [];
 
         // Bankdarlehen
@@ -1811,7 +1830,7 @@ function run() {
             if (bspDM && bspDM.bal > 0) bsp = bspDarlAmt;
         }
 
-        const total = kfw + kfwST + sk + nrw + ag + agTax + bsp;
+        const total = kfw + kfwST + sk + nrw + ag + agTax + bsp + miete;
 
         // Abbruch wenn alles 0 für ein paar Monate (Tilgung komplett)
         if (i > 130 && total < 1) break;
@@ -1821,7 +1840,7 @@ function run() {
         // Jahres-Trenn-Header
         if (calY !== prevYear) {
             mtbody += `<tr id="mrow_${calY}" style="background:#1a1a1a;color:#fff;">
-                <td colspan="10" style="padding:6px 10px;font-weight:700;font-size:12px;letter-spacing:.4px;">${calY}</td>
+                <td colspan="11" style="padding:6px 10px;font-weight:700;font-size:12px;letter-spacing:.4px;">${calY}</td>
             </tr>`;
             yearsSeen.add(calY);
             prevYear = calY;
@@ -1843,6 +1862,7 @@ function run() {
             <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:right;">${fmtCell(ag)}</td>
             <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:right;">${fmtCell(agTax)}</td>
             <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:right;">${fmtCell(bsp)}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:right;color:#5d4037;">${fmtCell(miete)}</td>
             <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:right;background:#fff3e0;font-weight:700;">${F2(total)} €</td>
             <td style="padding:6px 10px;border-bottom:1px solid #f0f0f0;">${noteHTML}</td>
         </tr>`;
