@@ -265,7 +265,7 @@ async function checkAuth(){
     <div style="margin-top:10px;font-size:11px;color:var(--muted);line-height:1.5;">
         <strong>Lesehilfe:</strong> Sollzins = vereinbarter Nominalzins. Effektivzins = Gesamtkosten p.a. inkl. Bearbeitung/Gebühren (Vergleichswert).
         <strong>Alle 3 Bankdarlehen (KfW, Sparkasse, NRW.BANK):</strong> 4 Monate zinsfreie Anlaufzeit (Mai–Aug 2026), erste Zinszahlung 01.09.2026.
-        Tilgungsstart: KfW + Sparkasse April 2027, NRW.BANK Mai 2027. AG-Darlehen tilgt sofort ab April 2026 (zinsfrei, nur geldwerter Vorteil als Steuer).
+        Tilgungsstart aller 3 Bankdarlehen: Mai 2027. AG-Darlehen tilgt sofort ab April 2026 (zinsfrei, nur geldwerter Vorteil als Steuer).
     </div>
 </div>
 
@@ -297,7 +297,7 @@ async function checkAuth(){
     </table>
     </div>
     <div style="margin-top:8px;font-size:11px;color:var(--muted);">
-        <strong>Spaltenlogik:</strong> Alle 3 Bankdarlehen (KfW, Sparkasse, NRW.BANK) = 0 € bis Aug 2026 (zinsfreie Anlaufzeit). Ab Sep 2026 nur Zinszahlungen, ab Tilgungsstart (Apr/Mai 2027) volle Annuität (Zins + Tilgung). Bauspar = 426,33 € Sparrate (bis Jan 2036), danach 575 € Bauspardarlehen-Rate. AG-Steuer sinkt monatlich mit der Tilgung des AG-Darlehens. <strong>Miete alt:</strong> 930 €/Mon Doppelbelastung Apr 2026–Apr 2027 (13 Monate, 12.090 € gesamt) — danach entfällt sie.
+        <strong>Spaltenlogik:</strong> Alle 3 Bankdarlehen (KfW, Sparkasse, NRW.BANK) = 0 € bis Aug 2026 (zinsfreie Anlaufzeit). Ab Sep 2026 nur Zinszahlungen, ab Tilgungsstart (Mai 2027) volle Annuität (Zins + Tilgung). Bauspar = 426,33 € Sparrate (bis Jan 2036), danach 575 € Bauspardarlehen-Rate. AG-Steuer sinkt monatlich mit der Tilgung des AG-Darlehens. <strong>Miete alt:</strong> 930 €/Mon Doppelbelastung Apr 2026–Apr 2027 (13 Monate, 12.090 € gesamt) — danach entfällt sie.
     </div>
 </div>
 
@@ -468,7 +468,7 @@ async function checkAuth(){
         <div class="dash-tl-item">
             <div class="tl-year">2027</div>
             <div class="tl-label">Tilgungsstart Bankdarlehen</div>
-            <div class="tl-val">Apr (KfW/Sk) · Mai (NRW)</div>
+            <div class="tl-val">Mai 2027 (alle 3)</div>
         </div>
         <div class="dash-tl-item">
             <div class="tl-year">2035</div>
@@ -1475,10 +1475,10 @@ function run() {
     const payF = Math.round(100000 * (zF + atF) / 100 / 12 * 100) / 100;
     const payS = Math.round(137000 * (zS + atS) / 100 / 12 * 100) / 100;
     const payN = Math.round(270000 * (zN + atN) / 100 / 12 * 100) / 100;
-    // Alle 3 Bankdarlehen: Zinsen erst ab 01.09.2026 (Monat 5, da Monat 0 = April 2026, Monat 1 = Mai)
-    const p1F  = phase1(100000, zF, payF, 12, stVal, 5);
-    const p1F0 = phase1(100000, zF, payF, 12, 0, 5);
-    const p1S  = phase1(137000, zS, payS, 12, 0, 5);
+    // Alle 3 Bankdarlehen: Zinsen ab 01.09.2026 (m=5), Tilgungsstart 01.05.2027 (m=13)
+    const p1F  = phase1(100000, zF, payF, 13, stVal, 5);
+    const p1F0 = phase1(100000, zF, payF, 13, 0, 5);
+    const p1S  = phase1(137000, zS, payS, 13, 0, 5);
     const p1N  = phase1(270000, zN, payN, 13, 0, 5);
 
     // AG-Darlehen
@@ -1670,14 +1670,14 @@ function run() {
             key: 'kfw',
             name: 'KfW / S-Förderdarlehen', betrag: 100000, soll: zF, eff: eF,
             rate: payF, zP1: p1F.totI, gesamt: p1F.totI + p2F.totI,
-            note: `Zinsen ab 01.09.2026 · Tilgungsstart Apr 2027 · ab Sep ${F2(100000*zF/100/12)} € reine Zinsen`,
+            note: `Zinsen ab 01.09.2026 · Tilgungsstart Mai 2027 · ab Sep ${F2(100000*zF/100/12)} € reine Zinsen`,
             color: 'var(--red)'
         },
         {
             key: 'sparkasse',
             name: 'Sparkasse', betrag: 137000, soll: zS, eff: eS,
             rate: payS, zP1: p1S.totI, gesamt: p1S.totI + p2S.totI,
-            note: `Zinsen ab 01.09.2026 · Tilgungsstart Apr 2027 · ab Sep ${F2(137000*zS/100/12)} € reine Zinsen`,
+            note: `Zinsen ab 01.09.2026 · Tilgungsstart Mai 2027 · ab Sep ${F2(137000*zS/100/12)} € reine Zinsen`,
             color: 'var(--blue)'
         },
         {
@@ -1793,8 +1793,7 @@ function run() {
             sk  = sM?.pay || 0;
             nrw = nM?.pay || 0;
             if (i === 5) notes.push('Erste Zinszahlung aller 3 Bankdarlehen (KfW, Sparkasse, NRW.BANK)');
-            if (i === 12) notes.push('Tilgungsstart KfW + Sparkasse');
-            if (i === 13) notes.push('Tilgungsstart NRW.BANK');
+            if (i === 13) notes.push('Tilgungsstart aller 3 Bankdarlehen');
         } else if (i > 120) {
             const j = i - 120;
             const fM = findM(p2F.months, j);
@@ -2437,8 +2436,8 @@ function openLoanDetail(key) {
                 rows += `<tr style="background:#1a1a1a;color:#fff;"><td colspan="${L.hasST ? 7 : 6}" style="padding:5px 10px;font-weight:700;">${calY}</td></tr>`;
                 prevYear = calY;
             }
-            const phaseLabel = i < 5 ? 'zinsfrei' : (i < 12 ? 'nur Zins' : 'Annuität');
-            const isKey = (i === 5 || i === 12 || i === 13);
+            const phaseLabel = i < 5 ? 'zinsfrei' : (i < 13 ? 'nur Zins' : 'Annuität');
+            const isKey = (i === 5 || i === 13);
             rows += `<tr style="${isKey ? 'background:#fff8e1;' : ''}">
                 <td style="white-space:nowrap;">${monthAbbr[calM]} ${calY}</td>
                 <td class="r">${F2(rest0)} €</td>
